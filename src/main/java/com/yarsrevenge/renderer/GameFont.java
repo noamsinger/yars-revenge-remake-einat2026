@@ -1,0 +1,29 @@
+package com.yarsrevenge.renderer;
+
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+
+public final class GameFont {
+
+    private static Font loaded = null;
+    private static final String FAMILY = "Press Start 2P";
+
+    static {
+        try {
+            Font.loadFont(GameFont.class.getResourceAsStream("/PressStart2P-Regular.ttf"), 12);
+        } catch (Exception e) {
+            System.err.println("Could not load Press Start 2P font: " + e.getMessage());
+        }
+    }
+
+    private GameFont() {}
+
+    public static Font of(double size) {
+        return Font.font(FAMILY, size);
+    }
+
+    public static Font bold(double size) {
+        // Press Start 2P has no bold variant — regular looks bold already
+        return Font.font(FAMILY, FontWeight.BOLD, size);
+    }
+}
