@@ -4,7 +4,7 @@ import javafx.scene.paint.Color;
 
 public class ShieldCell {
 
-    public static final double CELL_W = 50.0;
+    public static final double CELL_W = 25.0;
     public static final double CELL_H;
 
     static {

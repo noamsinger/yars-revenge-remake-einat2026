@@ -13,8 +13,8 @@ public final class GameConstants {
 
     public static final double SHIELD_X      = 1350.0;
     public static final double SHIELD_Y      =  100.0;
-    public static final double SHIELD_HEIGHT =  880.0;
-    public static final int    SHIELD_COLS   =  5;
+    public static final double SHIELD_HEIGHT =  704.0;
+    public static final int    SHIELD_COLS   =  8;
 
     public static final double QUOTILE_X     = 1824.0;
     public static final double QUOTILE_W     =   64.0;
@@ -22,12 +22,12 @@ public final class GameConstants {
 
     public static final double PLAYER_W      =   64.0;
     public static final double PLAYER_H      =   64.0;
-    public static final double PLAYER_SPEED  =  700.0;
+    public static final double PLAYER_SPEED  =  840.0;
 
-    public static final double BULLET_SPEED  =  500.0;
+    public static final double SHOT_SPEED     =  500.0;
     public static final double CANNON_SPEED  =  900.0;
 
-    public static final double SWIRL_ORBIT_RADIUS = 140.0;
+    public static final double TORPEDO_ORBIT_RADIUS = 140.0;
 
     public static final double WAVE_TRANSITION_SECS = 5.0;
     public static final double PLAYER_DYING_SECS    = 1.5;

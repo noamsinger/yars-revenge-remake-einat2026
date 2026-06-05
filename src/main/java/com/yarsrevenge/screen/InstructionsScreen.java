@@ -84,14 +84,14 @@ public class InstructionsScreen implements com.yarsrevenge.screen.Screen {
 
         // Section: OBJECTIVE
         section(gc, "OBJECTIVE", lx, y); y += 58;
-        bullet(gc, "Eat through the shield using the Swirl or your bullets.", lx, y); y += dy;
+        bullet(gc, "Eat through the shield using the Torpedo (Orb) or your bullets.", lx, y); y += dy;
         bullet(gc, "Expose the Quotile, then fire the Zorlon Cannon to destroy it.", lx, y); y += dy;
-        bullet(gc, "Avoid enemy bullets, the Swirl, and the Quotile missile.", lx, y); y += dy + 24;
+        bullet(gc, "Avoid Quotile shots, the Torpedo, and the Quotile missile.", lx, y); y += dy + 24;
 
         // Section: SCORING
         section(gc, "SCORING", lx, y); y += 58;
         row(gc, "Shield cell eaten",  "10 pts",     lx, rx, y); y += dy;
-        row(gc, "Swirl destroyed",    "500 pts",    lx, rx, y); y += dy;
+        row(gc, "Torpedo (Orb) destroyed", "500 pts",    lx, rx, y); y += dy;
         row(gc, "Quotile destroyed",  "2000 pts + wave bonus", lx, rx, y);
 
         // Footer

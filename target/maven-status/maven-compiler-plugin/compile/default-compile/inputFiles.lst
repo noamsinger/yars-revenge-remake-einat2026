@@ -10,15 +10,15 @@
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/engine/GameLoop.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/GameConstants.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/GameState.java
-/Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/Bullet.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/GameEntity.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/Player.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/PlayerBullet.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/Quotile.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/QuotileMissile.java
+/Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/QuotileShot.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/Shield.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/ShieldCell.java
-/Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/Swirl.java
+/Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/Torpedo.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/ZorlonCannon.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/wave/WaveConfig.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/wave/WaveFactory.java
@@ -33,7 +33,7 @@
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/renderer/RenderContext.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/renderer/Renderer.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/renderer/ShieldRenderer.java
-/Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/renderer/SwirlSprite.java
+/Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/renderer/TorpedoSprite.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/screen/AboutScreen.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/screen/ConfigScreen.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/screen/GameOverScreen.java

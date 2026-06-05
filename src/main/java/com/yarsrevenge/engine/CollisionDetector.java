@@ -28,24 +28,24 @@ public class CollisionDetector {
             state.chargeCanon();
         }
 
-        // Player hit by enemy bullet — Neutral Zone blocks bullets
+        // Player hit by Quotile shot — Neutral Zone blocks shots
         if (!playerInNZ) {
-            for (Bullet b : state.getActiveBullets()) {
-                if (b.isAlive() && player.intersects(b)) {
-                    b.kill();
+            for (QuotileShot s : state.getActiveShots()) {
+                if (s.isAlive() && player.intersects(s)) {
+                    s.kill();
                     killPlayer(state);
                     return;
                 }
             }
         }
 
-        // Player hit by Swirl — Neutral Zone protects; debug mode skips
-        if (!playerInNZ && !state.isDebugMode() && state.getSwirl().isAlive() && player.intersects(state.getSwirl())) {
+        // Player hit by Torpedo (Orb) — Neutral Zone protects; debug mode skips
+        if (!playerInNZ && !state.isDebugMode() && state.getTorpedo().isAlive() && player.intersects(state.getTorpedo())) {
             killPlayer(state);
             return;
         }
 
-        // Player bullets hitting shield only — bullets cannot kill swirl or quotile
+        // Player bullets hitting shield only — cannot kill Torpedo or Quotile
         for (PlayerBullet pb : state.getPlayerBullets()) {
             if (!pb.isAlive()) continue;
             ShieldCell pbHit = state.getShield().destroyAt(
@@ -63,7 +63,8 @@ public class CollisionDetector {
             missile.kill();
             state.setQuotileMissile(null);
             state.getQuotile().missileFinished();
-            state.getSwirl().reset();
+            state.getTorpedo().reset();
+            state.queueAudio(GameState.AudioEvent.STOP_MISSILE_LOOP);
             killPlayer(state);
             return;
         }
@@ -71,7 +72,6 @@ public class CollisionDetector {
         // Zorlon Cannon interactions
         ZorlonCannon cannon = state.getZorlonCannon();
         if (cannon != null && cannon.isAlive()) {
-            // Cannon destroys one shield cell and stops
             ShieldCell hit = state.getShield().destroyAt(
                 cannon.getX(), cannon.getY(), cannon.getWidth(), cannon.getHeight());
             if (hit != null) {
@@ -81,14 +81,12 @@ public class CollisionDetector {
                 state.queueAudio(GameState.AudioEvent.PLAY_SHIELD_CELL_POP);
                 return;
             }
-            // Cannon kills player if it hits them
             if (cannon.intersects(player)) {
                 cannon.kill();
                 state.queueAudio(GameState.AudioEvent.STOP_CANNON_FLY);
                 killPlayer(state);
                 return;
             }
-            // Cannon always kills Quotile on contact, regardless of shield state
             if (cannon.intersects(state.getQuotile())) {
                 cannon.kill();
                 state.queueAudio(GameState.AudioEvent.STOP_CANNON_FLY);
@@ -96,16 +94,16 @@ public class CollisionDetector {
                 destroyQuotile(state);
                 return;
             }
-            // Cannon also hits the flying missile (JetOctopus in MISSILE_FIRED mode)
             QuotileMissile missile2 = state.getQuotileMissile();
             if (missile2 != null && missile2.isAlive() && cannon.intersects(missile2)) {
                 cannon.kill();
                 state.queueAudio(GameState.AudioEvent.STOP_CANNON_FLY);
+                state.queueAudio(GameState.AudioEvent.STOP_MISSILE_LOOP);
                 state.setExplosionPoint(missile2.getCenterX(), missile2.getCenterY());
                 missile2.kill();
                 state.setQuotileMissile(null);
                 state.getQuotile().missileFinished();
-                state.getSwirl().reset();
+                state.getTorpedo().reset();
                 destroyQuotile(state);
                 return;
             }
@@ -120,7 +118,7 @@ public class CollisionDetector {
             missile.kill();
             state.setQuotileMissile(null);
             state.getQuotile().missileFinished();
-            state.getSwirl().reset();
+            state.getTorpedo().reset();
             state.queueAudio(GameState.AudioEvent.STOP_MISSILE_LOOP);
             killPlayer(state);
         }
@@ -129,7 +127,7 @@ public class CollisionDetector {
     private static void killPlayer(GameState state) {
         state.getPlayer().kill();
         state.loseLife();
-        state.getSwirl().reset();
+        state.getTorpedo().reset();
         state.queueAudio(GameState.AudioEvent.PLAY_PLAYER_DEATH);
         state.setPhase(GameState.Phase.PLAYER_DYING);
     }

@@ -9,25 +9,31 @@ import javafx.scene.paint.Color;
  */
 public class QuotileSprite {
 
-    private static final double[] PALETTE_HUES = {0.0, 55.0, 220.0, 130.0, 290.0};
-    private static final int[]    ARM_SPEED    = {1, 2, 3, 1, 4, 2, 3, 1};
-    private static final double[] ARM_PHASE    = {0.00, 1.05, 2.09, 3.14, 0.52, 1.57, 3.67, 4.71};
+    // 8 color stops: dark gray, dark yellow, dark red, dark magenta, dark blue, dark cyan, dark green, near-white
+    private static final double[] PAL_H = {  0.0,  60.0,   0.0, 300.0, 240.0, 180.0, 120.0,   0.0};
+    private static final double[] PAL_S = {  0.0,   0.9,   1.0,   1.0,   1.0,   1.0,   1.0,   0.0};
+    private static final double[] PAL_B = { 0.35,  0.50,  0.45,  0.45,  0.45,  0.45,  0.45,  0.75};
+    private static final int      PAL_N = 8;
+
+    private static final int[]    ARM_SPEED = {1, 2, 3, 1, 4, 2, 3, 1};
+    private static final double[] ARM_PHASE = {0.00, 1.05, 2.09, 3.14, 0.52, 1.57, 3.67, 4.71};
 
     public static void draw(GraphicsContext gc, double cx, double cy, double size, double t) {
         double S = size;
 
-        double colorPos = t * PALETTE_HUES.length;
-        int seg = (int) colorPos % PALETTE_HUES.length;
-        int nextSeg = (seg + 1) % PALETTE_HUES.length;
+        double colorPos = t * PAL_N;
+        int seg     = (int) colorPos % PAL_N;
+        int nextSeg = (seg + 1) % PAL_N;
         double blend = colorPos - Math.floor(colorPos);
         blend = (1.0 - Math.cos(blend * Math.PI)) * 0.5;
-        double hue = PALETTE_HUES[seg] + (PALETTE_HUES[nextSeg] - PALETTE_HUES[seg]) * blend;
-        if (seg == 4 && nextSeg == 0) hue = 290.0 + blend * 70.0;
+        double hue = lerpHue(PAL_H[seg], PAL_H[nextSeg], blend);
+        double sat = PAL_S[seg] + (PAL_S[nextSeg] - PAL_S[seg]) * blend;
+        double bri = PAL_B[seg] + (PAL_B[nextSeg] - PAL_B[seg]) * blend;
 
         double bodyPulse = 0.5 + 0.5 * Math.sin(2 * Math.PI * t * 3);
-        Color bodyColor = Color.hsb(hue % 360.0, 0.85, 0.45);
-        Color bodyLight = Color.hsb(hue % 360.0, 0.65, 0.70);
-        Color bodyDark  = Color.hsb(hue % 360.0, 1.00, 0.20);
+        Color bodyColor = Color.hsb(hue, sat,        bri);
+        Color bodyLight = Color.hsb(hue, sat * 0.75, Math.min(1.0, bri * 1.55));
+        Color bodyDark  = Color.hsb(hue, sat,        bri * 0.45);
         double wave = 2 * Math.PI * t;
 
         double ox = cx - S / 2.0;
@@ -71,6 +77,12 @@ public class QuotileSprite {
         gc.setFill(Color.rgb(255, 255, 255, 0.30));
         gc.fillOval(mantleCX - mantleRX * 0.55, mantleCY - mantleRY * 0.75,
                     mantleRX * 0.8, mantleRY * 0.5);
+    }
+
+    private static double lerpHue(double h1, double h2, double t) {
+        // Always take the short arc between the two hues
+        double diff = ((h2 - h1 + 540.0) % 360.0) - 180.0;
+        return (h1 + diff * t + 360.0) % 360.0;
     }
 
     private static void drawArms(GraphicsContext gc, double S, double ox, double oy,

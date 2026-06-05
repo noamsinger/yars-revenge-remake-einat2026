@@ -14,9 +14,9 @@ public class FlySprite {
         double ox = cx - S / 2.0;
         double oy = cy - S / 2.0;
 
-        double flapT      = Math.sin(2 * Math.PI * t);
+        double flapT      = Math.sin(2 * Math.PI * t * 4);
         double wingAng    = flapT * 38.0;
-        double bendT      = Math.sin(2 * Math.PI * t + Math.PI * 0.4);
+        double bendT      = Math.sin(2 * Math.PI * t * 4 + Math.PI * 0.4);
         double tipBend    = bendT * 18.0;
         double abdomenOff = flapT * 4.0 / 256.0 * S;
 

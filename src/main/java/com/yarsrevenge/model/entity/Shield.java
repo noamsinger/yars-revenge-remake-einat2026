@@ -12,14 +12,29 @@ public class Shield {
     private final int cols;
     private final int rows;
 
-    private final List<Double> cellOffsetX = new ArrayList<>();
-    private final List<Double> cellOffsetY = new ArrayList<>();
+    // Polar coordinates relative to Quotile center, fixed at build time
+    private final List<Double> cellRadius = new ArrayList<>();
+    private final List<Double> cellAngle  = new ArrayList<>();
 
     private static final Random RNG = new Random(0xBADC0DE);
 
-    // Distance ring parameters (in logical pixels from Quotile center)
     private static final double MIN_RADIUS =  80.0;
     private static final double MAX_RADIUS = 350.0;
+
+    // Rotation state (odd waves only)
+    private double rotationAngle = 0.0;
+    private static final double ROTATION_SPEED = Math.toRadians(40.0); // 40 deg/sec
+
+    // Scrolling state (even waves only)
+    private int    scrollOffset = 0;
+    private double scrollTimer  = 0.0;
+    private static final double SCROLL_INTERVAL = 0.1; // seconds per slot advance
+
+    private boolean rectMode = false;
+
+    // Rect-mode slot positions (fixed, computed once in rebuildRect)
+    private final List<Double> slotX = new ArrayList<>();
+    private final List<Double> slotY = new ArrayList<>();
 
     public Shield(int cols, int rows) {
         this.cols = cols;
@@ -27,30 +42,29 @@ public class Shield {
         rebuild(rows);
     }
 
-    /**
-     * Tiles the area around the Quotile with CELL_W × CELL_W cells and keeps
-     * only those whose center is within [MIN_RADIUS, MAX_RADIUS] of the Quotile
-     * center. The grid is centered on the Quotile so the pattern is symmetric
-     * in Y. Cells outside screen bounds are dropped.
-     */
     public void rebuild(int shieldRows) {
+        rectMode = false;
         cells.clear();
-        cellOffsetX.clear();
-        cellOffsetY.clear();
+        cellRadius.clear();
+        cellAngle.clear();
+        slotX.clear();
+        slotY.clear();
+        rotationAngle = 0.0;
+        scrollOffset  = 0;
+        scrollTimer   = 0.0;
 
         double cw = ShieldCell.CELL_W;
 
         double qcx = GameConstants.QUOTILE_X + GameConstants.QUOTILE_W / 2.0;
         double qcy = GameConstants.LOGICAL_H / 2.0;
 
-        // Iterate offsets from the Quotile center, aligned to a cw grid
         int halfSteps = (int) Math.ceil(MAX_RADIUS / cw) + 1;
 
         RNG.setSeed(0xBADC0DE);
 
         for (int drow = -halfSteps; drow <= halfSteps; drow++) {
-            for (int dcol = -halfSteps; dcol <= 1; dcol++) { // dcol<=1: only left side + Quotile col
-                double offX = dcol * cw + cw / 2.0;  // offset from Quotile center
+            for (int dcol = -halfSteps; dcol <= 1; dcol++) {
+                double offX = dcol * cw + cw / 2.0;
                 double offY = drow * cw + cw / 2.0;
 
                 double dist = Math.sqrt(offX * offX + offY * offY);
@@ -59,7 +73,6 @@ public class Shield {
                 double cx = qcx + offX;
                 double cy = qcy + offY;
 
-                // Screen bounds check
                 if (cx - cw / 2.0 < 0 || cx + cw / 2.0 > GameConstants.LOGICAL_W) continue;
                 if (cy - cw / 2.0 < 0 || cy + cw / 2.0 > GameConstants.LOGICAL_H) continue;
 
@@ -69,22 +82,98 @@ public class Shield {
                 Color color = Color.rgb(red, 0, 0);
                 cells.add(new ShieldCell(col, row,
                     cx - cw / 2.0, cy - cw / 2.0, cw, cw, color));
-                cellOffsetX.add(offX);
-                cellOffsetY.add(offY);
+                cellRadius.add(dist);
+                cellAngle.add(Math.atan2(offY, offX));
             }
         }
     }
 
-    /** Repositions all cells to follow the Quotile's center. */
+    /** Flat rectangular wall for even waves. */
+    public void rebuildRect(int shieldRows) {
+        rectMode = true;
+        cells.clear();
+        cellRadius.clear();
+        cellAngle.clear();
+        slotX.clear();
+        slotY.clear();
+        rotationAngle = 0.0;
+        scrollOffset  = 0;
+        scrollTimer   = 0.0;
+
+        double cw       = ShieldCell.CELL_W;
+        int    rectCols = (int) Math.round(GameConstants.SHIELD_COLS * 1.3);
+        int    rectRows = (int) Math.round(shieldRows * 1.2);
+
+        // Center the wall on LOGICAL_H/2 (updateScrolling will shift it with Quotile Y)
+        double totalH  = rectRows * cw;
+        double baseY   = GameConstants.LOGICAL_H / 2.0 - totalH / 2.0;
+
+        RNG.setSeed(0xBADC0DE);
+
+        // Build slots left→right, top→bottom so scrolling reads naturally
+        for (int r = 0; r < rectRows; r++) {
+            for (int c = 0; c < rectCols; c++) {
+                double x = GameConstants.SHIELD_X + c * cw;
+                double y = baseY + r * cw;
+                slotX.add(x);
+                slotY.add(y);
+                int red = 0x60 + RNG.nextInt(0x61);
+                Color color = Color.rgb(red, 0, 0);
+                cells.add(new ShieldCell(c, r, x, y, cw, cw, color));
+            }
+        }
+    }
+
+    /** Static shield — cells track Quotile Y but don't rotate. */
     public void update(double quotileCenterY) {
         double qcx = GameConstants.QUOTILE_X + GameConstants.QUOTILE_W / 2.0;
         double cw  = ShieldCell.CELL_W;
         for (int i = 0; i < cells.size(); i++) {
             ShieldCell c = cells.get(i);
-            double cx = qcx + cellOffsetX.get(i);
-            double cy = quotileCenterY + cellOffsetY.get(i);
-            c.x = cx - cw / 2.0;
-            c.y = cy - c.cellHeight / 2.0;
+            double angle = cellAngle.get(i);
+            double r     = cellRadius.get(i);
+            double offX  = Math.cos(angle) * r;
+            double offY  = Math.sin(angle) * r;
+            c.x = qcx + offX - cw / 2.0;
+            c.y = quotileCenterY + offY - c.cellHeight / 2.0;
+        }
+    }
+
+    /** Rotating shield — cells orbit around the Quotile, following its Y. */
+    public void updateRotating(double quotileCenterY, double dt) {
+        rotationAngle += ROTATION_SPEED * dt;
+        double qcx = GameConstants.QUOTILE_X + GameConstants.QUOTILE_W / 2.0;
+        double cw  = ShieldCell.CELL_W;
+        for (int i = 0; i < cells.size(); i++) {
+            ShieldCell c = cells.get(i);
+            double angle = cellAngle.get(i) + rotationAngle;
+            double r     = cellRadius.get(i);
+            double offX  = Math.cos(angle) * r;
+            double offY  = Math.sin(angle) * r;
+            c.x = qcx + offX - cw / 2.0;
+            c.y = quotileCenterY + offY - c.cellHeight / 2.0;
+        }
+    }
+
+    /**
+     * Scrolling shield (even waves) — flat rect wall tracks Quotile Y, cells cycle
+     * through slots in reading order (left→right, top→bottom, wrapping back to top).
+     */
+    public void updateScrolling(double quotileCenterY, double dt) {
+        scrollTimer += dt;
+        while (scrollTimer >= SCROLL_INTERVAL) {
+            scrollTimer -= SCROLL_INTERVAL;
+            scrollOffset = (scrollOffset + 1) % cells.size();
+        }
+
+        // Shift the whole wall so its vertical centre follows the Quotile
+        double yOffset = quotileCenterY - GameConstants.LOGICAL_H / 2.0;
+        int n = cells.size();
+        for (int i = 0; i < n; i++) {
+            int slot = (i + scrollOffset) % n;
+            ShieldCell c = cells.get(i);
+            c.x = slotX.get(slot);
+            c.y = slotY.get(slot) + yOffset;
         }
     }
 
@@ -122,16 +211,21 @@ public class Shield {
         return true;
     }
 
-    /** Min and max Y offsets of any cell relative to the Quotile center. */
     public double getMinCellOffsetY() {
         double min = 0;
-        for (double oy : cellOffsetY) if (oy < min) min = oy;
+        for (int i = 0; i < cellAngle.size(); i++) {
+            double oy = Math.sin(cellAngle.get(i)) * cellRadius.get(i);
+            if (oy < min) min = oy;
+        }
         return min;
     }
 
     public double getMaxCellOffsetY() {
         double max = 0;
-        for (double oy : cellOffsetY) if (oy > max) max = oy;
+        for (int i = 0; i < cellAngle.size(); i++) {
+            double oy = Math.sin(cellAngle.get(i)) * cellRadius.get(i);
+            if (oy > max) max = oy;
+        }
         return max;
     }
 

@@ -45,8 +45,8 @@ public class EntityRenderer implements Renderer {
             }
         }
 
-        if (ctx.swirlAlive()) drawSwirl(gc, ctx);
-        drawBullets(gc, ctx);
+        if (ctx.torpedoAlive()) drawTorpedo(gc, ctx);
+        drawQuotileShots(gc, ctx);
         drawPlayerBullets(gc, ctx);
         drawCannonBeam(gc, ctx);
         drawQuotileMissile(gc, ctx);
@@ -59,7 +59,7 @@ public class EntityRenderer implements Renderer {
             if ((int)(ctx.phaseTimer() * 10) % 2 == 0) return;
         }
 
-        double flapFps = 120.0;
+        double flapFps = 30.0;
         double t = (ctx.playerWingPhase() * flapFps % FLY_CYCLE) / FLY_CYCLE;
         double cx = ctx.playerX() + ctx.playerW() / 2.0;
         double cy = ctx.playerY() + ctx.playerH() / 2.0;
@@ -72,14 +72,13 @@ public class EntityRenderer implements Renderer {
         gc.restore();
     }
 
-    // FlySprite cycle length in "animation frames" at flapFps
     private static final double FLY_CYCLE = 32.0;
 
     // ---- quotile ----
 
     private void drawQuotile(GraphicsContext gc, RenderContext ctx) {
         double animFps = 30.0;
-        double t = ((ctx.playerWingPhase() * animFps) % 60.0) / 60.0;
+        double t = ((ctx.playerWingPhase() * animFps) % 450.0) / 450.0;
         double cx = ctx.quotileX() + ctx.quotileW() / 2.0;
         double cy = ctx.quotileY() + ctx.quotileH() / 2.0;
         double size = ctx.quotileW() * 2.0;
@@ -108,7 +107,6 @@ public class EntityRenderer implements Renderer {
         double glowAlpha = Math.max(0, 1.0 - t / 2.0) * 0.7;
         if (glowAlpha > 0) {
             double glowR = 40 + 20 * Math.sin(t * 8);
-            // Three concentric ovals instead of RadialGradient
             gc.setFill(Color.rgb(200, 0, 0, glowAlpha * 0.30));
             gc.fillOval(cx - glowR, cy - glowR, glowR * 2, glowR * 2);
             gc.setFill(Color.rgb(255, 100, 0, glowAlpha * 0.50));
@@ -118,24 +116,24 @@ public class EntityRenderer implements Renderer {
         }
     }
 
-    // ---- swirl ----
+    // ---- torpedo (orb) ----
 
-    private void drawSwirl(GraphicsContext gc, RenderContext ctx) {
+    private void drawTorpedo(GraphicsContext gc, RenderContext ctx) {
         double animFps = 30.0;
         double t = ((ctx.playerWingPhase() * animFps) % 64.0) / 64.0;
-        double cx = ctx.swirlX() + ctx.swirlW() / 2.0;
-        double cy = ctx.swirlY() + ctx.swirlH() / 2.0;
-        double size = ctx.swirlW() * 0.9;
-        SwirlSprite.draw(gc, cx, cy, size, t);
+        double cx = ctx.torpedoX() + ctx.torpedoW() / 2.0;
+        double cy = ctx.torpedoY() + ctx.torpedoH() / 2.0;
+        double size = ctx.torpedoW() * 0.9;
+        TorpedoSprite.draw(gc, cx, cy, size, t);
     }
 
-    // ---- bullets ----
+    // ---- quotile shots ----
 
-    private void drawBullets(GraphicsContext gc, RenderContext ctx) {
+    private void drawQuotileShots(GraphicsContext gc, RenderContext ctx) {
         gc.setFill(Color.rgb(255, 200, 50));
-        for (Bullet b : ctx.bullets()) {
-            if (b.isAlive())
-                gc.fillRect(b.getX(), b.getY(), b.getWidth(), b.getHeight());
+        for (QuotileShot s : ctx.shots()) {
+            if (s.isAlive())
+                gc.fillRect(s.getX(), s.getY(), s.getWidth(), s.getHeight());
         }
     }
 

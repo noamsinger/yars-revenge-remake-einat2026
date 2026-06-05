@@ -4,7 +4,7 @@ public enum SoundEffect {
     BG_HUM,           // deep space ambient loop
     BULLET_SHOOT,     // player bullet fire
     SHIELD_NIBBLE,    // player eats a shield cell
-    SWIRL_EXPLODE,    // swirl destroyed
+    TORPEDO_EXPLODE,  // torpedo (orb) destroyed
     SHIELD_CELL_POP,  // shield cell destroyed by cannon/bullet
     CANNON_LAUNCH,    // zorlon cannon launch crack
     CANNON_FLYING,    // zorlon cannon in-flight hiss (looped)

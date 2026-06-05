@@ -14,7 +14,7 @@ public class Player extends GameEntity {
     private double bounceVx = 0;
     private double bounceVy = 0;
     private double bounceTimer = 0;
-    private static final double BOUNCE_DURATION = 0.10;
+    private static final double BOUNCE_DURATION = 0.05;
     private static final double BOUNCE_SPEED    = 400.0;
 
     public Player(double x, double y) {

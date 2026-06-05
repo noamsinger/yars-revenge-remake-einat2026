@@ -19,8 +19,8 @@ public class PcmSynthesizer {
             // Shield nibble: high-pitched click — short square wave chirp + noise snap
             case SHIELD_NIBBLE -> buildNibble();
 
-            // Swirl explode: medium noise explosion + pitch-down ring
-            case SWIRL_EXPLODE -> buildExplosion(350, 0.80, false);
+            // Torpedo explode: medium noise explosion + pitch-down ring
+            case TORPEDO_EXPLODE -> buildExplosion(350, 0.80, false);
 
             // Shield cell pop: small quick pop
             case SHIELD_CELL_POP -> buildNoiseBurst(60, 0.45, 40);
@@ -246,22 +246,37 @@ public class PcmSynthesizer {
     }
 
     private static byte[] buildQuotileMissile() {
-        // Rising screaming missile: sawtooth sweep 400→2800 Hz, 1s loopable, vibrato
+        // Wind splash: broadband noise shaped by a sweeping bandpass envelope + low whoosh
         int n = msToSamples(1000);
         short[] s = new short[n];
-        double phaseAcc = 0;
+        Random rng = new Random(0xA1DF);
+        double lp1 = 0, lp2 = 0;
         for (int i = 0; i < n; i++) {
             double progress = (double) i / n;
             double t = (double) i / SAMPLE_RATE;
-            double vibrato = 1.0 + 0.03 * Math.sin(2 * Math.PI * 35 * t);
-            double freq = (400 + progress * 2400) * vibrato;
-            phaseAcc += freq / SAMPLE_RATE;
-            double saw = 2.0 * (phaseAcc - Math.floor(phaseAcc)) - 1.0;
-            int fadeLen = msToSamples(40);
+
+            double noise = rng.nextDouble() * 2 - 1;
+
+            // Two lowpass filters at different cutoffs — their difference is a bandpass
+            double fc1 = Math.min(0.45, (300 + progress * 1500) / SAMPLE_RATE);
+            double fc2 = fc1 * 0.4;
+            lp1 += fc1 * (noise - lp1);
+            lp2 += fc2 * (noise - lp2);
+            double band = (lp1 - lp2) * 3.0; // boost but cap below
+
+            // Low whoosh undertone for body
+            double whoosh = 0.20 * Math.sin(2 * Math.PI * (60 + progress * 140) * t);
+
+            double mix = band * 0.70 + whoosh;
+            // Hard-clamp to avoid overflow
+            mix = Math.max(-1.0, Math.min(1.0, mix));
+
+            int fadeLen = msToSamples(60);
             double fade = 1.0;
             if (i < fadeLen)     fade = (double) i / fadeLen;
             if (i > n - fadeLen) fade = (double)(n - i) / fadeLen;
-            s[i] = (short)(saw * fade * 0.65 * Short.MAX_VALUE);
+
+            s[i] = (short)(mix * fade * 0.60 * Short.MAX_VALUE);
         }
         return wrapWav(s);
     }

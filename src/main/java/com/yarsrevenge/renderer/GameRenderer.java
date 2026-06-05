@@ -116,7 +116,7 @@ public class GameRenderer {
             JetOctopusSprite.draw(gc, -500, -500, 100, 0.5);
             QuotileSprite.draw(gc, -500, -500, 100, 0.0);
             FlySprite.draw(gc, -500, -500, 100, 0.0);
-            SwirlSprite.draw(gc, -500, -500, 100, 0.0);
+            TorpedoSprite.draw(gc, -500, -500, 100, 0.0);
             gc.restore();
         }
 

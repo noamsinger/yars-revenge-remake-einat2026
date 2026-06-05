@@ -74,9 +74,9 @@ public class Quotile extends GameEntity {
     }
 
     private void fireBullet(GameState state) {
-        double bx = x - Bullet.BULLET_W;
-        double by = getCenterY() - Bullet.BULLET_H / 2.0;
-        state.addBullet(new Bullet(bx, by));
+        double bx = x - QuotileShot.SHOT_W;
+        double by = getCenterY() - QuotileShot.SHOT_H / 2.0;
+        state.addShot(new QuotileShot(bx, by));
     }
 
     public void missileFinished() {

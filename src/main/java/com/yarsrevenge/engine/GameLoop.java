@@ -124,7 +124,12 @@ public class GameLoop {
                 long t0 = System.nanoTime();
                 state.getQuotile().update(dt, state);
                 long t1 = System.nanoTime();
-                state.getShield().update(state.getQuotile().getCenterY());
+                double qcy = state.getQuotile().getCenterY();
+                if (state.getWaveConfig().scrollingShield()) {
+                    state.getShield().updateScrolling(qcy, dt);
+                } else {
+                    state.getShield().update(qcy);
+                }
                 long t2 = System.nanoTime();
 
                 Quotile.Mode qModeAfter = state.getQuotile().getMode();
@@ -150,8 +155,8 @@ public class GameLoop {
 
                 // Player, bullets and cannon always update — player must be able to dodge the missile
                 state.getPlayer().update(dt, state);
-                state.getActiveBullets().forEach(b -> b.update(dt, state));
-                state.getActiveBullets().removeIf(b -> !b.isAlive());
+                state.getActiveShots().forEach(b -> b.update(dt, state));
+                state.getActiveShots().removeIf(b -> !b.isAlive());
                 state.getPlayerBullets().forEach(b -> b.update(dt, state));
                 state.getPlayerBullets().removeIf(b -> !b.isAlive());
                 if (state.getZorlonCannon() != null) {
@@ -159,11 +164,11 @@ public class GameLoop {
                     if (!state.getZorlonCannon().isAlive()) state.setZorlonCannon(null);
                 }
 
-                // Swirl always moves
-                if (!state.getSwirl().isAlive()) {
-                    if (!inMissileMode) state.advanceSwirlRespawnTimer(dt);
+                // Torpedo (Orb) always moves
+                if (!state.getTorpedo().isAlive()) {
+                    if (!inMissileMode) state.advanceTorpedoRespawnTimer(dt);
                 } else {
-                    state.getSwirl().update(dt, state);
+                    state.getTorpedo().update(dt, state);
                 }
 
                 // Full collision detection always runs (cannon must be able to kill quotile in missile mode)
@@ -175,7 +180,7 @@ public class GameLoop {
                     if (!state.getQuotileMissile().isAlive()) {
                         state.setQuotileMissile(null);
                         state.getQuotile().missileFinished();
-                        state.getSwirl().reset();
+                        state.getTorpedo().reset();
                         state.queueAudio(GameState.AudioEvent.STOP_MISSILE_LOOP);
                     }
                     CollisionDetector.detectMissileOnly(state);

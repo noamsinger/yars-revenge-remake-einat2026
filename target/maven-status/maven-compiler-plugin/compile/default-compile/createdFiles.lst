@@ -3,7 +3,6 @@ com/yarsrevenge/model/GameState$AudioEvent.class
 com/yarsrevenge/screen/MainMenuScreen$1.class
 com/yarsrevenge/model/GameState$Phase.class
 com/yarsrevenge/screen/InstructionsScreen.class
-com/yarsrevenge/renderer/SwirlSprite.class
 com/yarsrevenge/audio/SoundEffect.class
 com/yarsrevenge/renderer/GameFont.class
 com/yarsrevenge/model/entity/QuotileMissile.class
@@ -24,6 +23,7 @@ com/yarsrevenge/model/entity/ZorlonCannon.class
 com/yarsrevenge/controller/GameController.class
 com/yarsrevenge/renderer/RenderContext.class
 com/yarsrevenge/renderer/GameRenderer$1.class
+com/yarsrevenge/renderer/TorpedoSprite.class
 com/yarsrevenge/model/wave/WaveFactory.class
 com/yarsrevenge/model/GameConstants.class
 com/yarsrevenge/audio/AudioManager.class
@@ -33,8 +33,6 @@ com/yarsrevenge/app/YarsRevengeApp.class
 com/yarsrevenge/model/entity/Shield.class
 com/yarsrevenge/renderer/JetOctopusSprite.class
 com/yarsrevenge/model/entity/Player.class
-com/yarsrevenge/model/entity/Bullet.class
-com/yarsrevenge/model/entity/Swirl.class
 com/yarsrevenge/screen/GameScreen.class
 com/yarsrevenge/renderer/EntityRenderer.class
 com/yarsrevenge/model/entity/Quotile$Mode.class
@@ -45,6 +43,7 @@ com/yarsrevenge/screen/HighScoreScreen$1.class
 com/yarsrevenge/engine/GameLoop$1.class
 com/yarsrevenge/renderer/HudRenderer.class
 com/yarsrevenge/audio/PcmSynthesizer.class
+com/yarsrevenge/model/entity/QuotileShot.class
 com/yarsrevenge/screen/Screen.class
 com/yarsrevenge/app/SceneManager.class
 com/yarsrevenge/model/GameState.class
@@ -55,5 +54,6 @@ com/yarsrevenge/screen/AboutScreen$1.class
 com/yarsrevenge/renderer/FlySprite.class
 com/yarsrevenge/model/entity/PlayerBullet.class
 com/yarsrevenge/audio/PcmSynthesizer$WaveType.class
+com/yarsrevenge/model/entity/Torpedo.class
 com/yarsrevenge/renderer/GameRenderer.class
 com/yarsrevenge/renderer/ShieldRenderer.class

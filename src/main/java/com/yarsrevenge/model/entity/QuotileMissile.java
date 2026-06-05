@@ -6,7 +6,7 @@ import com.yarsrevenge.model.GameState;
 public class QuotileMissile extends GameEntity {
 
     public static final double SIZE  = GameConstants.QUOTILE_W; // same size as enemy
-    public static final double SPEED = 1400.0;
+    public static final double SPEED = 1680.0;
 
     private final double vx;
     private final double vy;
