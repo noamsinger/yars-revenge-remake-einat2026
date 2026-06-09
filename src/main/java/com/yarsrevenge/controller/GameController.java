@@ -1,5 +1,6 @@
 package com.yarsrevenge.controller;
 
+import com.yarsrevenge.config.GameConfig;
 import com.yarsrevenge.model.GameConstants;
 import com.yarsrevenge.model.GameState;
 import com.yarsrevenge.model.entity.PlayerBullet;
@@ -9,7 +10,8 @@ import javafx.scene.input.KeyCode;
 public class GameController {
 
     private final InputHandler input;
-    // Cooldown so holding SPACE doesn't spam bullets
+    private final AutoPilot autoPilot = new AutoPilot();
+
     private double bulletCooldown = 0.0;
     private static final double BULLET_COOLDOWN_SECS = 0.25;
 
@@ -19,20 +21,16 @@ public class GameController {
 
     public void processInput(double dt, GameState state) {
         if (state.getPhase() == GameState.Phase.PAUSED) {
-            // ESC always resumes
             if (input.consumeEscape()) {
                 state.setPhase(GameState.Phase.PLAYING);
                 state.queueAudio(GameState.AudioEvent.RESUME_BG_HUM);
                 return;
             }
-            // UP/DOWN navigate between Resume (0) and Quit (1)
             if (input.isKeyDown(KeyCode.UP) || input.isKeyDown(KeyCode.W)) {
                 state.setPauseSelection(0);
             } else if (input.isKeyDown(KeyCode.DOWN) || input.isKeyDown(KeyCode.S)) {
                 state.setPauseSelection(1);
             }
-
-            // ENTER or SPACE confirms selection
             boolean confirm = input.consumeCannonFire() || input.consumeBulletFire();
             if (confirm) {
                 if (state.getPauseSelection() == 0) {
@@ -54,11 +52,33 @@ public class GameController {
         if (input.consumeDebugToggle()) {
             state.toggleDebugMode();
         }
+        if (input.consumeAutoPilotToggle()) {
+            state.toggleAutoPilot();
+        }
+        if (state.isDebugMode() && state.getPhase() == GameState.Phase.PLAYING) {
+            if (input.consumeDebugKillEnemy()) {
+                state.queueAudio(GameState.AudioEvent.STOP_ALL_LOOPS);
+                state.queueAudio(GameState.AudioEvent.PLAY_QUOTILE_EXPLODE);
+                state.setExplosionPoint(state.getQuotile().getCenterX(), state.getQuotile().getCenterY());
+                state.setPhase(GameState.Phase.WAVE_TRANSITION);
+            }
+            if (input.consumeDebugAddExp()) {
+                state.addScore(1000);
+            }
+        } else {
+            input.consumeDebugKillEnemy();
+            input.consumeDebugAddExp();
+        }
         if (state.getPhase() != GameState.Phase.PLAYING) return;
 
-        handleMovement(state);
-        handleBulletFire(dt, state);
-        handleCannonFire(state);
+        if (state.isAutoPilot()) {
+            autoPilot.tick(dt, state);
+            handleAutoPilotFire(dt, state);
+        } else {
+            handleMovement(state);
+            handleBulletFire(dt, state);
+            handleCannonFire(state);
+        }
     }
 
     public void clearKeys() { input.clearKeys(); }
@@ -88,7 +108,7 @@ public class GameController {
     private void handleBulletFire(double dt, GameState state) {
         bulletCooldown = Math.max(0, bulletCooldown - dt);
         if (state.getPlayer().isInNeutralZone()) {
-            input.consumeBulletFire(); // discard
+            input.consumeBulletFire();
             return;
         }
         boolean bulletInFlight = !state.getPlayerBullets().isEmpty()
@@ -108,10 +128,62 @@ public class GameController {
             input.consumeCannonFire();
             return;
         }
-        if (input.consumeCannonFire() && state.isCannonCharged() && state.getZorlonCannon() == null) {
+        GameConfig.GameMode mode = GameConfig.getInstance().getGameMode();
+        boolean canFire;
+        if (mode == GameConfig.GameMode.ULTIMATE) {
+            boolean hasTrons = state.hasTronsForCannon();
+            boolean atLeftEdge = state.getPlayer().getX() <= GameConstants.ULTIMATE_FIRE_X;
+            canFire = hasTrons && atLeftEdge;
+        } else {
+            canFire = state.isCannonCharged();
+        }
+        if (input.consumeCannonFire() && canFire && state.getZorlonCannon() == null) {
             double startY = state.getPlayer().getCenterY();
             state.setZorlonCannon(new ZorlonCannon(startY));
-            state.dischargeCanon();
+            if (mode == GameConfig.GameMode.ULTIMATE) {
+                state.resetTrons();
+            } else {
+                state.dischargeCanon();
+            }
+            state.queueAudio(GameState.AudioEvent.PLAY_CANNON_LAUNCH);
+            state.queueAudio(GameState.AudioEvent.START_CANNON_FLY);
+        }
+    }
+
+    private void handleAutoPilotFire(double dt, GameState state) {
+        bulletCooldown = Math.max(0, bulletCooldown - dt);
+        if (state.getPlayer().isInNeutralZone()) return;
+
+        GameConfig.GameMode mode = GameConfig.getInstance().getGameMode();
+
+        // Bullet
+        boolean bulletInFlight = !state.getPlayerBullets().isEmpty()
+                && state.getPlayerBullets().stream().anyMatch(b -> b.isAlive());
+        if (autoPilot.consumeWantBullet() && bulletCooldown == 0 && !bulletInFlight) {
+            double[] dir = state.getPlayer().getFacingDirection();
+            double bx = state.getPlayer().getCenterX() + dir[0] * state.getPlayer().getWidth() * 0.5;
+            double by = state.getPlayer().getCenterY() + dir[1] * state.getPlayer().getHeight() * 0.5;
+            state.addPlayerBullet(new PlayerBullet(bx - PlayerBullet.W / 2.0, by - PlayerBullet.H / 2.0, dir[0], dir[1]));
+            bulletCooldown = BULLET_COOLDOWN_SECS;
+            state.queueAudio(GameState.AudioEvent.PLAY_BULLET_SHOOT);
+        }
+
+        // Cannon
+        boolean canFire;
+        if (mode == GameConfig.GameMode.ULTIMATE) {
+            canFire = state.hasTronsForCannon()
+                   && state.getPlayer().getX() <= GameConstants.ULTIMATE_FIRE_X;
+        } else {
+            canFire = state.isCannonCharged();
+        }
+        if (autoPilot.consumeWantCannon() && canFire && state.getZorlonCannon() == null) {
+            double startY = state.getPlayer().getCenterY();
+            state.setZorlonCannon(new ZorlonCannon(startY));
+            if (mode == GameConfig.GameMode.ULTIMATE) {
+                state.resetTrons();
+            } else {
+                state.dischargeCanon();
+            }
             state.queueAudio(GameState.AudioEvent.PLAY_CANNON_LAUNCH);
             state.queueAudio(GameState.AudioEvent.START_CANNON_FLY);
         }

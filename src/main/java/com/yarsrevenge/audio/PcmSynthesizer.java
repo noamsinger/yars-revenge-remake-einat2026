@@ -19,9 +19,6 @@ public class PcmSynthesizer {
             // Shield nibble: high-pitched click — short square wave chirp + noise snap
             case SHIELD_NIBBLE -> buildNibble();
 
-            // Torpedo explode: medium noise explosion + pitch-down ring
-            case TORPEDO_EXPLODE -> buildExplosion(350, 0.80, false);
-
             // Shield cell pop: small quick pop
             case SHIELD_CELL_POP -> buildNoiseBurst(60, 0.45, 40);
 
@@ -44,7 +41,7 @@ public class PcmSynthesizer {
             case WAVE_START -> buildWaveStart();
 
             // Quotile missile: high-pitched screaming rising tone, loopable 1s
-            case QUOTILE_MISSILE -> buildQuotileMissile();
+            case SWIRL -> buildSwirlSound();
         };
     }
 
@@ -245,7 +242,7 @@ public class PcmSynthesizer {
         return wrapWav(s);
     }
 
-    private static byte[] buildQuotileMissile() {
+    private static byte[] buildSwirlSound() {
         // Wind splash: broadband noise shaped by a sweeping bandpass envelope + low whoosh
         int n = msToSamples(1000);
         short[] s = new short[n];

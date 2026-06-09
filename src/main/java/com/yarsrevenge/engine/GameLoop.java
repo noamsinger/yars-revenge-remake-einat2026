@@ -7,11 +7,16 @@ import com.yarsrevenge.controller.GameController;
 import com.yarsrevenge.model.GameConstants;
 import com.yarsrevenge.model.GameState;
 import com.yarsrevenge.model.entity.Quotile;
+import com.yarsrevenge.model.entity.ShieldMode;
 import com.yarsrevenge.renderer.GameRenderer;
 import javafx.animation.AnimationTimer;
 import javafx.scene.canvas.GraphicsContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GameLoop {
+
+    private static final Logger log = LoggerFactory.getLogger(GameLoop.class);
 
     private static final double TICK_RATE = 1.0 / 60.0;
 
@@ -50,7 +55,7 @@ public class GameLoop {
                 lastNanos = nowNanos;
                 // Log any frame gap > 200ms — indicates FX thread was blocked between calls
                 if (delta > 0.20) {
-                    System.out.println("[GAP] " + (long)(delta * 1000) + "ms between frames, phase=" + state.getPhase() + " qMode=" + state.getQuotile().getMode());
+                    log.warn("Frame gap {}ms phase={} qMode={}", (long)(delta * 1000), state.getPhase(), state.getQuotile().getMode());
                 }
                 if (delta > 0.25) delta = 0.25;
 
@@ -71,8 +76,8 @@ public class GameLoop {
                             case STOP_ALL_LOOPS    -> AudioManager.getInstance().pauseAllLoops();
                             case START_ALARM       -> AudioManager.getInstance().startAlarmLoop();
                             case STOP_ALARM        -> AudioManager.getInstance().stopAlarmLoop();
-                            case START_MISSILE_LOOP -> AudioManager.getInstance().startMissileLoop();
-                            case STOP_MISSILE_LOOP  -> AudioManager.getInstance().stopMissileLoop();
+                            case START_SWIRL_LOOP  -> AudioManager.getInstance().startSwirlLoop();
+                            case STOP_SWIRL_LOOP   -> AudioManager.getInstance().stopSwirlLoop();
                             case RESUME_BG_HUM     -> AudioManager.getInstance().resumeBgHum();
                             case STOP_CANNON_FLY   -> AudioManager.getInstance().stopCannonFly();
                             case START_CANNON_FLY  -> AudioManager.getInstance().startCannonFly();
@@ -84,10 +89,10 @@ public class GameLoop {
                             case PLAY_CANNON_LAUNCH   -> AudioManager.getInstance().play(com.yarsrevenge.audio.SoundEffect.CANNON_LAUNCH);
                         }
                         long evMs = (System.nanoTime() - evStart) / 1_000_000;
-                        if (evMs > 5) System.out.println("[AUDIO-DRAIN] " + ev + " took " + evMs + " ms");
+                        if (evMs > 5) log.warn("Audio drain: {} took {}ms", ev, evMs);
                     }
                     long totalMs = (System.nanoTime() - drainStart) / 1_000_000;
-                    if (totalMs > 5) System.out.println("[AUDIO-DRAIN] total drain " + totalMs + " ms for " + events);
+                    if (totalMs > 5) log.warn("Audio drain total {}ms for {}", totalMs, events);
                 }
 
                 // Throttle rendering to configured FPS (simulation always runs at 60 Hz)
@@ -102,11 +107,11 @@ public class GameLoop {
                     long renderStart = System.nanoTime();
                     renderer.render(gc, state);
                     long renderMs = (System.nanoTime() - renderStart) / 1_000_000;
-                    if (renderMs > 20) System.out.println("[RENDER] took " + renderMs + " ms");
+                    if (renderMs > 20) log.warn("Render took {}ms", renderMs);
                 }
 
                 long frameMs = (System.nanoTime() - frameStart) / 1_000_000;
-                if (frameMs > 50) System.out.println("[FRAME] slow frame: " + frameMs + " ms, phase=" + state.getPhase());
+                if (frameMs > 50) log.warn("Slow frame {}ms phase={}", frameMs, state.getPhase());
             }
         };
         timer.start();
@@ -125,10 +130,11 @@ public class GameLoop {
                 state.getQuotile().update(dt, state);
                 long t1 = System.nanoTime();
                 double qcy = state.getQuotile().getCenterY();
-                if (state.getWaveConfig().scrollingShield()) {
-                    state.getShield().updateScrolling(qcy, dt);
-                } else {
-                    state.getShield().update(qcy);
+                switch (state.getWaveConfig().shieldMode()) {
+                    case CYCLING_FENCE  -> state.getShield().updateScrolling(qcy, dt);
+                    case ROTATING_CIRCLE -> state.getShield().updateRotating(qcy, dt);
+                    case RANDOM_SWARM    -> state.getShield().updateSwarm(qcy, dt);
+                    default              -> state.getShield().update(qcy); // ARCH_BARRICADE
                 }
                 long t2 = System.nanoTime();
 
@@ -136,9 +142,8 @@ public class GameLoop {
 
                 // Log when entering missile alarm mode
                 if (qModeAfter != qModeBefore) {
-                    System.out.println("[MODE] " + qModeBefore + " -> " + qModeAfter
-                        + " quotileUpdate=" + (t1-t0)/1_000_000 + "ms"
-                        + " shieldUpdate=" + (t2-t1)/1_000_000 + "ms");
+                    log.debug("Quotile mode {} -> {} quotileUpdate={}ms shieldUpdate={}ms",
+                        qModeBefore, qModeAfter, (t1-t0)/1_000_000, (t2-t1)/1_000_000);
                 }
 
                 boolean inMissileMode = qModeAfter == Quotile.Mode.MISSILE_WARNING
@@ -149,6 +154,7 @@ public class GameLoop {
 
                 // Missile alarm just exited
                 if (!inMissileMode && wasInMissileMode) {
+                    log.debug("Missile mode exited: {} -> {} => RESUME_BG_HUM", lastQMode, qModeAfter);
                     state.queueAudio(GameState.AudioEvent.RESUME_BG_HUM);
                 }
                 lastQMode = qModeAfter;
@@ -164,26 +170,21 @@ public class GameLoop {
                     if (!state.getZorlonCannon().isAlive()) state.setZorlonCannon(null);
                 }
 
-                // Torpedo (Orb) always moves
-                if (!state.getTorpedo().isAlive()) {
-                    if (!inMissileMode) state.advanceTorpedoRespawnTimer(dt);
-                } else {
-                    state.getTorpedo().update(dt, state);
-                }
+                // Torpedo always moves — it is indestructible
+                state.getTorpedo().update(dt, state);
 
                 // Full collision detection always runs (cannon must be able to kill quotile in missile mode)
                 CollisionDetector.detect(state);
 
-                // Missile always moves during MISSILE_FIRED
-                if (state.getQuotileMissile() != null) {
-                    state.getQuotileMissile().update(dt, state);
-                    if (!state.getQuotileMissile().isAlive()) {
-                        state.setQuotileMissile(null);
-                        state.getQuotile().missileFinished();
-                        state.getTorpedo().reset();
-                        state.queueAudio(GameState.AudioEvent.STOP_MISSILE_LOOP);
+                // Swirl always moves during MISSILE_FIRED
+                if (state.getSwirl() != null) {
+                    state.getSwirl().update(dt, state);
+                    if (!state.getSwirl().isAlive()) {
+                        state.setSwirl(null);
+                        state.getQuotile().swirlFinished();
+                        state.queueAudio(GameState.AudioEvent.STOP_SWIRL_LOOP);
                     }
-                    CollisionDetector.detectMissileOnly(state);
+                    CollisionDetector.detectSwirlOnly(state);
                 }
             }
             case PAUSED -> { /* waiting for user choice — renderer draws overlay */ }
@@ -192,11 +193,13 @@ public class GameLoop {
                 if (state.getPhaseTimer() >= GameConstants.PLAYER_DYING_SECS) {
                     if (state.getLives() <= 0) {
                         state.setPhase(GameState.Phase.GAME_OVER);
+                        AudioManager.getInstance().pauseAllLoops();
                         stop();
                         SceneManager.getInstance().showGameOver(state.getScore(), state.getCurrentWave());
                     } else {
                         state.respawnPlayer();
                         state.setPhase(GameState.Phase.PLAYING);
+                        state.queueAudio(GameState.AudioEvent.RESUME_BG_HUM);
                     }
                 }
             }
@@ -204,7 +207,9 @@ public class GameLoop {
                 state.advancePhaseTimer(dt);
                 if (state.getPhaseTimer() >= GameConstants.WAVE_TRANSITION_SECS) {
                     state.initWave(state.getCurrentWave() + 1);
+                    lastQMode = Quotile.Mode.NORMAL; // reset so missile-exit check doesn't misfire
                     state.setPhase(GameState.Phase.PLAYING);
+                    state.queueAudio(GameState.AudioEvent.RESUME_BG_HUM);
                 }
             }
             case GAME_OVER -> { /* handled above */ }

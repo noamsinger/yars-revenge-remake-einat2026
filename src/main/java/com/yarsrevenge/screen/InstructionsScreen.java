@@ -71,28 +71,36 @@ public class InstructionsScreen implements com.yarsrevenge.screen.Screen {
         gc.fillText("INSTRUCTIONS", 380, 100);
 
         double lx = 120, rx = 560;
-        double y  = 195;
-        double dy = 52;
+        double y  = 160;
+        double dy = 42;
 
         // Section: CONTROLS
-        section(gc, "CONTROLS", lx, y); y += 58;
+        section(gc, "CONTROLS", lx, y); y += 48;
         row(gc, "ARROW KEYS / WASD", "MOVE", lx, rx, y); y += dy;
         row(gc, "ENTER",             "FIRE BULLET", lx, rx, y); y += dy;
         row(gc, "SPACE",             "ZORLON CANNON  (when charged)", lx, rx, y); y += dy;
         row(gc, "ESC",               "PAUSE", lx, rx, y); y += dy;
-        row(gc, "M",                 "MINIMIZE  (minimize window)", lx, rx, y); y += dy + 24;
+        row(gc, "SHIFT-A",           "AUTOPILOT (toggle)", lx, rx, y); y += dy;
+        row(gc, "SHIFT-M",           "MINIMIZE WINDOW", lx, rx, y); y += dy + 16;
 
         // Section: OBJECTIVE
-        section(gc, "OBJECTIVE", lx, y); y += 58;
+        section(gc, "OBJECTIVE", lx, y); y += 48;
         bullet(gc, "Eat through the shield using the Torpedo (Orb) or your bullets.", lx, y); y += dy;
         bullet(gc, "Expose the Quotile, then fire the Zorlon Cannon to destroy it.", lx, y); y += dy;
-        bullet(gc, "Avoid Quotile shots, the Torpedo, and the Quotile missile.", lx, y); y += dy + 24;
+        bullet(gc, "Avoid Quotile shots, the Torpedo, and the Swirl.", lx, y); y += dy + 16;
+
+        // Section: GAME MODES
+        section(gc, "GAME MODES", lx, y); y += 48;
+        row(gc, "NOVICE",   "Slower torpedo — easier",               lx, rx, y); y += dy;
+        row(gc, "NORMAL",   "Standard game",                         lx, rx, y); y += dy;
+        row(gc, "REBOUND",  "Cannon bounces back off shield!",        lx, rx, y); y += dy;
+        row(gc, "ULTIMATE", "Collect 5 Trons, fly to left edge, fire", lx, rx, y); y += dy + 16;
 
         // Section: SCORING
-        section(gc, "SCORING", lx, y); y += 58;
-        row(gc, "Shield cell eaten",  "10 pts",     lx, rx, y); y += dy;
-        row(gc, "Torpedo (Orb) destroyed", "500 pts",    lx, rx, y); y += dy;
-        row(gc, "Quotile destroyed",  "2000 pts + wave bonus", lx, rx, y);
+        section(gc, "SCORING", lx, y); y += 48;
+        row(gc, "Shield cell eaten",    "10 pts",                lx, rx, y); y += dy;
+        row(gc, "Swirl hit mid-air",    "2000 pts bonus",        lx, rx, y); y += dy;
+        row(gc, "Quotile destroyed",    "1000 pts + wave bonus", lx, rx, y);
 
         // Footer
         gc.setFont(GameFont.of(16));

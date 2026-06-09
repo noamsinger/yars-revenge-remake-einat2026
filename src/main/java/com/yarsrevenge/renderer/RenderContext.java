@@ -1,7 +1,9 @@
 package com.yarsrevenge.renderer;
 
+import com.yarsrevenge.config.GameConfig;
 import com.yarsrevenge.model.GameState;
 import com.yarsrevenge.model.entity.*;
+import com.yarsrevenge.model.wave.WaveConfig;
 import java.util.List;
 
 public record RenderContext(
@@ -15,14 +17,18 @@ public record RenderContext(
     List<PlayerBullet> playerBullets,
     Shield shield,
     ZorlonCannon zorlonCannon,
-    QuotileMissile quotileMissile,
+    Swirl swirl,
     int lives, int score, int wave,
     boolean cannonCharged,
     boolean debugMode,
     double explosionX, double explosionY,
     GameState.Phase phase,
     double phaseTimer,
-    int pauseSelection
+    int pauseSelection,
+    WaveConfig waveConfig,
+    int tronCount,
+    GameConfig.GameMode gameMode,
+    boolean autoPilot
 ) {
     public static RenderContext snapshot(GameState s) {
         return new RenderContext(
@@ -41,13 +47,17 @@ public record RenderContext(
             s.getPlayerBullets(),
             s.getShield(),
             s.getZorlonCannon(),
-            s.getQuotileMissile(),
+            s.getSwirl(),
             s.getLives(), s.getScore(), s.getCurrentWave(),
             s.isCannonCharged(),
             s.isDebugMode(),
             s.getExplosionX(), s.getExplosionY(),
             s.getPhase(), s.getPhaseTimer(),
-            s.getPauseSelection()
+            s.getPauseSelection(),
+            s.getWaveConfig(),
+            s.getTronCount(),
+            GameConfig.getInstance().getGameMode(),
+            s.isAutoPilot()
         );
     }
 }

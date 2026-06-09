@@ -1,14 +1,18 @@
 package com.yarsrevenge.audio;
 
 import javafx.scene.media.AudioClip;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class AudioManager {
+
+    private static final Logger log = LoggerFactory.getLogger(AudioManager.class);
 
     private static AudioManager instance;
 
@@ -44,14 +48,14 @@ public class AudioManager {
         clipDurationMs.put(SoundEffect.BG_HUM,         4000L);
         clipDurationMs.put(SoundEffect.CANNON_FLYING,  1500L);
         clipDurationMs.put(SoundEffect.ENEMY_ALARM,     240L);
-        clipDurationMs.put(SoundEffect.QUOTILE_MISSILE, 1000L);
+        clipDurationMs.put(SoundEffect.SWIRL,          1000L);
 
         Path tempDir;
         try {
             tempDir = Files.createTempDirectory("yars-audio-");
             tempDir.toFile().deleteOnExit();
         } catch (IOException e) {
-            System.err.println("Cannot create temp dir for audio: " + e.getMessage());
+            log.error("Cannot create temp dir for audio", e);
             return;
         }
 
@@ -68,9 +72,10 @@ public class AudioManager {
                 clip.stop();
                 clips.put(fx, clip);
             } catch (Exception e) {
-                System.err.println("Failed to generate sound: " + fx + " — " + e.getMessage());
+                log.error("Failed to generate sound: {}", fx, e);
             }
         }
+        log.info("AudioManager initialised ({} clips)", clips.size());
     }
 
     public static AudioManager getInstance() {
@@ -97,6 +102,7 @@ public class AudioManager {
     // ---- loop management — uses ScheduledExecutorService, never setCycleCount ----
 
     public void startBgHum() {
+        log.debug("startBgHum");
         stopLoop(bgHumFuture);
         bgHumFuture = null;
         if (muted) return;
@@ -104,10 +110,12 @@ public class AudioManager {
     }
 
     public void stopBgHum() {
+        log.debug("stopBgHum");
         bgHumFuture = stopLoop(bgHumFuture);
     }
 
     public void startCannonFly() {
+        log.debug("startCannonFly");
         stopLoop(cannonFlyFuture);
         cannonFlyFuture = null;
         if (muted) return;
@@ -115,10 +123,12 @@ public class AudioManager {
     }
 
     public void stopCannonFly() {
+        log.debug("stopCannonFly");
         cannonFlyFuture = stopLoop(cannonFlyFuture);
     }
 
     public void startAlarmLoop() {
+        log.debug("startAlarmLoop");
         stopLoop(alarmFuture);
         alarmFuture = null;
         if (muted) return;
@@ -126,21 +136,27 @@ public class AudioManager {
     }
 
     public void stopAlarmLoop() {
+        log.debug("stopAlarmLoop");
         alarmFuture = stopLoop(alarmFuture);
     }
 
-    public void startMissileLoop() {
+    public void startSwirlLoop() {
+        log.debug("startSwirlLoop");
         stopLoop(missileFuture);
         missileFuture = null;
         if (muted) return;
-        missileFuture = startLoop(SoundEffect.QUOTILE_MISSILE, 0.75);
+        missileFuture = startLoop(SoundEffect.SWIRL, 0.75);
     }
 
-    public void stopMissileLoop() {
+    public void stopSwirlLoop() {
+        log.debug("stopSwirlLoop");
         missileFuture = stopLoop(missileFuture);
     }
 
     public void pauseAllLoops() {
+        log.debug("pauseAllLoops bgHum={} cannonFly={} alarm={} swirl={}",
+            bgHumFuture != null, cannonFlyFuture != null,
+            alarmFuture != null, missileFuture != null);
         bgHumFuture     = stopLoop(bgHumFuture);
         cannonFlyFuture = stopLoop(cannonFlyFuture);
         alarmFuture     = stopLoop(alarmFuture);
@@ -161,18 +177,28 @@ public class AudioManager {
     /** Start a clip looping by re-scheduling play() at the clip's exact duration. */
     private ScheduledFuture<?> startLoop(SoundEffect fx, double volume) {
         AudioClip clip = clips.get(fx);
-        if (clip == null) return null;
+        if (clip == null) {
+            log.warn("startLoop: clip missing for {}", fx);
+            return null;
+        }
         long periodMs = clipDurationMs.getOrDefault(fx, 500L);
-        // Play immediately, then repeat every periodMs
-        return scheduler.scheduleAtFixedRate(
-            () -> clip.play(volume),
-            0L, periodMs, TimeUnit.MILLISECONDS
-        );
+        log.debug("startLoop {} period={}ms", fx, periodMs);
+        return scheduler.scheduleAtFixedRate(() -> {
+            try {
+                clip.play(volume);
+            } catch (Exception e) {
+                log.error("Loop play threw for {}", fx, e);
+            }
+        }, 0L, periodMs, TimeUnit.MILLISECONDS);
     }
 
     /** Cancel a loop future; returns null so callers can clear their reference. */
     private ScheduledFuture<?> stopLoop(ScheduledFuture<?> future) {
-        if (future != null) future.cancel(false);
+        if (future != null) {
+            boolean wasActive = !future.isDone();
+            future.cancel(false);
+            log.debug("stopLoop wasActive={}", wasActive);
+        }
         return null;
     }
 }

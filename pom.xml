@@ -13,7 +13,10 @@
 
     <properties>
         <java.version>21</java.version>
-        <javafx.version>21.0.2</javafx.version>
+        <!-- Pinned to 21.x: JavaFX major version must align with the JDK LTS we compile against.
+             JavaFX 24 supports Java 21+ but introduces API breaks; upgrade only when moving the
+             compiler target beyond 21. Latest patch in the 21.x line is 21.0.7. -->
+        <javafx.version>21.0.7</javafx.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -21,6 +24,17 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.17</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.5.18</version>
+        </dependency>
+
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
@@ -48,7 +62,8 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.12.1</version>
+                <!-- Pinned to 3.x: 4.x line is still in beta as of 2026-06. -->
+                <version>3.15.0</version>
                 <configuration>
                     <release>21</release>
                 </configuration>
@@ -57,6 +72,7 @@
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
+                <!-- 0.0.8 is the only release ever published for this plugin. -->
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>${main.class}</mainClass>
@@ -74,7 +90,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.1</version>
+                <version>3.6.2</version>
                 <executions>
                     <execution>
                         <phase>package</phase>

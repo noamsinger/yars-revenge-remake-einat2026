@@ -1,9 +1,11 @@
+/Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/app/LogDirDefiner.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/app/SceneManager.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/app/YarsRevengeApp.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/audio/AudioManager.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/audio/PcmSynthesizer.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/audio/SoundEffect.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/config/GameConfig.java
+/Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/controller/AutoPilot.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/controller/GameController.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/controller/InputHandler.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/engine/CollisionDetector.java
@@ -14,10 +16,11 @@
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/Player.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/PlayerBullet.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/Quotile.java
-/Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/QuotileMissile.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/QuotileShot.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/Shield.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/ShieldCell.java
+/Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/ShieldMode.java
+/Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/Swirl.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/Torpedo.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/entity/ZorlonCannon.java
 /Users/i757131/code-personal/yars-revenge-remake-einat2026/src/main/java/com/yarsrevenge/model/wave/WaveConfig.java

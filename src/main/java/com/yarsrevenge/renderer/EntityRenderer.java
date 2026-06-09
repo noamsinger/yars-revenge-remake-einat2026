@@ -49,7 +49,7 @@ public class EntityRenderer implements Renderer {
         drawQuotileShots(gc, ctx);
         drawPlayerBullets(gc, ctx);
         drawCannonBeam(gc, ctx);
-        drawQuotileMissile(gc, ctx);
+        drawSwirl(gc, ctx);
     }
 
     // ---- player ----
@@ -187,8 +187,8 @@ public class EntityRenderer implements Renderer {
 
     // ---- quotile missile ----
 
-    private void drawQuotileMissile(GraphicsContext gc, RenderContext ctx) {
-        QuotileMissile m = ctx.quotileMissile();
+    private void drawSwirl(GraphicsContext gc, RenderContext ctx) {
+        Swirl m = ctx.swirl();
         if (m == null || !m.isAlive()) return;
         double angleDeg = Math.toDegrees(m.getAngle());
         drawJetOctopus(gc, m.getX(), m.getY(), m.getWidth(), ctx.playerWingPhase(), angleDeg);

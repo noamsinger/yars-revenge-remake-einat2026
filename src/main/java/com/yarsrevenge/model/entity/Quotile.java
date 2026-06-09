@@ -7,8 +7,10 @@ public class Quotile extends GameEntity {
 
     public enum Mode { NORMAL, MISSILE_WARNING, MISSILE_FIRED }
 
-    public static final double MISSILE_WARNING_AFTER = 15.0;
-    public static final double MISSILE_WARNING_SECS  = 4.0;
+    public static final double MISSILE_WARNING_AFTER      = 15.0;
+    public static final double MISSILE_WARNING_AFTER_HIGH = 0.1;  // 70k+: effectively instant
+    public static final double MISSILE_WARNING_SECS       = 4.0;
+    public static final double MISSILE_WARNING_SECS_HIGH  = 0.05; // 70k+: no visible alarm phase
 
     private double speed;
     private int direction = 1;
@@ -35,10 +37,18 @@ public class Quotile extends GameEntity {
         y += speed * direction * dt;
         Shield shield = state.getShield();
         double cellH  = ShieldCell.CELL_W;
-        double minOff = shield.getMinCellOffsetY();
-        double maxOff = shield.getMaxCellOffsetY();
-        double minCY  = -minOff + cellH / 2.0;
-        double maxCY  = GameConstants.LOGICAL_H - maxOff - cellH / 2.0;
+        double minCY, maxCY;
+        if (shield.isRectMode()) {
+            // Clamp so the rect wall stays fully on screen
+            double halfH = shield.getRectHalfHeight();
+            minCY = halfH + cellH / 2.0;
+            maxCY = GameConstants.LOGICAL_H - halfH - cellH / 2.0;
+        } else {
+            double minOff = shield.getMinCellOffsetY();
+            double maxOff = shield.getMaxCellOffsetY();
+            minCY = -minOff + cellH / 2.0;
+            maxCY = GameConstants.LOGICAL_H - maxOff - cellH / 2.0;
+        }
         if (getCenterY() <= minCY) { y = minCY - height / 2.0; direction =  1; }
         else if (getCenterY() >= maxCY) { y = maxCY - height / 2.0; direction = -1; }
 
@@ -49,8 +59,9 @@ public class Quotile extends GameEntity {
                     bulletTimer = 0;
                     fireBullet(state);
                 }
-
-                if (modeTimer >= MISSILE_WARNING_AFTER) {
+                double warningAfter = state.getScore() >= 70_000
+                    ? MISSILE_WARNING_AFTER_HIGH : MISSILE_WARNING_AFTER;
+                if (modeTimer >= warningAfter) {
                     mode = Mode.MISSILE_WARNING;
                     modeTimer = 0.0;
                     state.queueAudio(GameState.AudioEvent.STOP_ALL_LOOPS);
@@ -58,15 +69,20 @@ public class Quotile extends GameEntity {
                 }
             }
             case MISSILE_WARNING -> {
-                if (modeTimer >= MISSILE_WARNING_SECS) {
+                double warningSecs = state.getScore() >= 70_000
+                    ? MISSILE_WARNING_SECS_HIGH : MISSILE_WARNING_SECS;
+                if (modeTimer >= warningSecs) {
                     mode = Mode.MISSILE_FIRED;
                     modeTimer = 0.0;
                     Player p = state.getPlayer();
-                    state.setQuotileMissile(new QuotileMissile(
+                    double missileSpeed = Swirl.SPEED
+                        * state.getWaveConfig().missileSpeedMultiplier();
+                    boolean stalling = state.getScore() >= 150_000;
+                    state.setSwirl(new Swirl(
                         getCenterX(), getCenterY(),
-                        p.getCenterX(), p.getCenterY()));
+                        p.getCenterX(), p.getCenterY(), missileSpeed, stalling));
                     state.queueAudio(GameState.AudioEvent.STOP_ALARM);
-                    state.queueAudio(GameState.AudioEvent.START_MISSILE_LOOP);
+                    state.queueAudio(GameState.AudioEvent.START_SWIRL_LOOP);
                 }
             }
             case MISSILE_FIRED -> { /* waiting for missile to finish */ }
@@ -79,7 +95,7 @@ public class Quotile extends GameEntity {
         state.addShot(new QuotileShot(bx, by));
     }
 
-    public void missileFinished() {
+    public void swirlFinished() {
         mode = Mode.NORMAL;
         modeTimer = 0.0;
         bulletTimer = 0.0;
@@ -88,6 +104,8 @@ public class Quotile extends GameEntity {
     public boolean isExposed(Shield shield) { return shield.isColumnClearAt(x); }
     public Mode getMode()                   { return mode; }
     public double getModeTimer()            { return modeTimer; }
+    public double getSpeed()                { return speed; }
+    public int getDirection()               { return direction; }
     public void setSpeed(double speed)      { this.speed = speed; }
     public void setBulletCooldown(double cd){ this.bulletCooldown = cd; }
 

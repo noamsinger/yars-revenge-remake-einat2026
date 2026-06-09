@@ -2,9 +2,12 @@ package com.yarsrevenge.renderer;
 
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class GameFont {
 
+    private static final Logger log = LoggerFactory.getLogger(GameFont.class);
     private static Font loaded = null;
     private static final String FAMILY = "Press Start 2P";
 
@@ -12,7 +15,7 @@ public final class GameFont {
         try {
             Font.loadFont(GameFont.class.getResourceAsStream("/PressStart2P-Regular.ttf"), 12);
         } catch (Exception e) {
-            System.err.println("Could not load Press Start 2P font: " + e.getMessage());
+            log.error("Could not load Press Start 2P font", e);
         }
     }
 

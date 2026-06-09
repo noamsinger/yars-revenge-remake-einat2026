@@ -1,9 +1,16 @@
 package com.yarsrevenge.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.nio.file.*;
 
 public final class GameConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(GameConfig.class);
+
+    public enum GameMode { NOVICE, NORMAL, REBOUND, ULTIMATE }
 
     private static final Path CONFIG_DIR  = Path.of(System.getProperty("user.home"), ".config", "yars-revenge-remake-einat2026");
     private static final Path CONFIG_FILE = CONFIG_DIR.resolve("config.json");
@@ -11,9 +18,10 @@ public final class GameConfig {
     private static GameConfig instance;
 
     // Settings with defaults
-    private boolean audioEnabled = true;
-    private int     fpsLimit     = 30;    // 6 | 15 | 30
-    private String  resolution   = "FIT"; // "FIT" | "1920x1080" | "1024x576"
+    private boolean  audioEnabled = true;
+    private int      fpsLimit     = 30;           // 6 | 15 | 30
+    private String   resolution   = "FIT";        // "FIT" | "1920x1080" | "1024x576"
+    private GameMode gameMode     = GameMode.NORMAL;
 
     private GameConfig() { load(); }
 
@@ -24,15 +32,17 @@ public final class GameConfig {
 
     // ---- getters ----
 
-    public boolean isAudioEnabled() { return audioEnabled; }
-    public int     getFpsLimit()    { return fpsLimit; }
-    public String  getResolution()  { return resolution; }
+    public boolean  isAudioEnabled() { return audioEnabled; }
+    public int      getFpsLimit()    { return fpsLimit; }
+    public String   getResolution()  { return resolution; }
+    public GameMode getGameMode()    { return gameMode; }
 
     // ---- setters — each calls save() ----
 
-    public void setAudioEnabled(boolean v) { audioEnabled = v; save(); }
-    public void setFpsLimit(int v)         { fpsLimit = v;     save(); }
-    public void setResolution(String v)    { resolution = v;   save(); }
+    public void setAudioEnabled(boolean v)  { audioEnabled = v; save(); }
+    public void setFpsLimit(int v)          { fpsLimit = v;     save(); }
+    public void setResolution(String v)     { resolution = v;   save(); }
+    public void setGameMode(GameMode v)     { gameMode = v;     save(); }
 
     // ---- resolution helpers ----
 
@@ -63,11 +73,13 @@ public final class GameConfig {
             audioEnabled = parseBool(text, "audioEnabled", audioEnabled);
             fpsLimit     = parseInt(text,  "fpsLimit",     fpsLimit);
             resolution   = parseStr(text,  "resolution",   resolution);
+            String gm    = parseStr(text,  "gameMode",     gameMode.name());
             // Validate
             if (fpsLimit != 6 && fpsLimit != 15 && fpsLimit != 30) fpsLimit = 30;
             if (!resolution.equals("FIT") && !resolution.equals("1920x1080")
                     && !resolution.equals("1024x576") && !resolution.equals("3840x2160"))
                 resolution = "FIT";
+            try { gameMode = GameMode.valueOf(gm); } catch (IllegalArgumentException e) { gameMode = GameMode.NORMAL; }
         } catch (IOException e) {
             // Use defaults on any IO error
         }
@@ -79,11 +91,12 @@ public final class GameConfig {
             String json = "{\n"
                 + "  \"audioEnabled\": " + audioEnabled + ",\n"
                 + "  \"fpsLimit\": " + fpsLimit + ",\n"
-                + "  \"resolution\": \"" + resolution + "\"\n"
+                + "  \"resolution\": \"" + resolution + "\",\n"
+                + "  \"gameMode\": \"" + gameMode.name() + "\"\n"
                 + "}\n";
             Files.writeString(CONFIG_FILE, json);
         } catch (IOException e) {
-            System.err.println("Could not save config: " + e.getMessage());
+            log.error("Could not save config", e);
         }
     }
 

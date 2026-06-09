@@ -206,7 +206,7 @@ public class MainMenuScreen implements com.yarsrevenge.screen.Screen {
         drawGlassPanel(gc, 620, 310, 720, 160);
         gc.setFont(com.yarsrevenge.renderer.GameFont.of(30));
         gc.setFill(Color.WHITE);
-        gc.fillText("SCORE: " + gameOverScore,              680, 370);
+        gc.fillText("EXP: " + gameOverScore,              680, 370);
         gc.fillText("WAVES: " + (gameOverWave - 1), 680, 430);
 
         drawMenuItems(gc, t, 490);

@@ -101,7 +101,7 @@ public class GameOverScreen implements com.yarsrevenge.screen.Screen {
         // Stats
         gc.setFont(Font.font("Courier New", FontWeight.BOLD, 48));
         gc.setFill(Color.WHITE);
-        gc.fillText("SCORE: " + score,          680, 360);
+        gc.fillText("EXP: " + score,          680, 360);
         gc.fillText("WAVES CLEARED: " + (wave - 1), 680, 430);
 
         // Menu items

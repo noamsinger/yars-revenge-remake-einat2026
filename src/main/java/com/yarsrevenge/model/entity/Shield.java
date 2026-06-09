@@ -32,9 +32,17 @@ public class Shield {
 
     private boolean rectMode = false;
 
+    // Rect-mode dimensions — stored for alternating-row scroll
+    private int rectCols = 0;
+    private int rectRows = 0;
+
     // Rect-mode slot positions (fixed, computed once in rebuildRect)
     private final List<Double> slotX = new ArrayList<>();
     private final List<Double> slotY = new ArrayList<>();
+
+    // Swarm drift velocities (one per cell, set in rebuildSwarm)
+    private final List<Double> swarmVx = new ArrayList<>();
+    private final List<Double> swarmVy = new ArrayList<>();
 
     public Shield(int cols, int rows) {
         this.cols = cols;
@@ -44,11 +52,14 @@ public class Shield {
 
     public void rebuild(int shieldRows) {
         rectMode = false;
+        rectCols = 0; rectRows = 0;
         cells.clear();
         cellRadius.clear();
         cellAngle.clear();
         slotX.clear();
         slotY.clear();
+        swarmVx.clear();
+        swarmVy.clear();
         rotationAngle = 0.0;
         scrollOffset  = 0;
         scrollTimer   = 0.0;
@@ -88,7 +99,7 @@ public class Shield {
         }
     }
 
-    /** Flat rectangular wall for even waves. */
+    /** Flat rectangular wall — CYCLING_FENCE mode. */
     public void rebuildRect(int shieldRows) {
         rectMode = true;
         cells.clear();
@@ -96,21 +107,21 @@ public class Shield {
         cellAngle.clear();
         slotX.clear();
         slotY.clear();
+        swarmVx.clear();
+        swarmVy.clear();
         rotationAngle = 0.0;
         scrollOffset  = 0;
         scrollTimer   = 0.0;
 
-        double cw       = ShieldCell.CELL_W;
-        int    rectCols = (int) Math.round(GameConstants.SHIELD_COLS * 1.3);
-        int    rectRows = (int) Math.round(shieldRows * 1.2);
+        double cw = ShieldCell.CELL_W;
+        rectCols = (int) Math.round(GameConstants.SHIELD_COLS * 1.3);
+        rectRows = (int) Math.round(shieldRows * 1.2);
 
-        // Center the wall on LOGICAL_H/2 (updateScrolling will shift it with Quotile Y)
-        double totalH  = rectRows * cw;
-        double baseY   = GameConstants.LOGICAL_H / 2.0 - totalH / 2.0;
+        double totalH = rectRows * cw;
+        double baseY  = GameConstants.LOGICAL_H / 2.0 - totalH / 2.0;
 
         RNG.setSeed(0xBADC0DE);
 
-        // Build slots left→right, top→bottom so scrolling reads naturally
         for (int r = 0; r < rectRows; r++) {
             for (int c = 0; c < rectCols; c++) {
                 double x = GameConstants.SHIELD_X + c * cw;
@@ -118,9 +129,88 @@ public class Shield {
                 slotX.add(x);
                 slotY.add(y);
                 int red = 0x60 + RNG.nextInt(0x61);
-                Color color = Color.rgb(red, 0, 0);
-                cells.add(new ShieldCell(c, r, x, y, cw, cw, color));
+                cells.add(new ShieldCell(c, r, x, y, cw, cw, Color.rgb(red, 0, 0)));
             }
+        }
+    }
+
+    /** Same arc geometry as ARCH_BARRICADE but used for ROTATING_CIRCLE. */
+    public void rebuildRotating(int shieldRows) {
+        rectMode = false;
+        rectCols = 0; rectRows = 0;
+        cells.clear();
+        cellRadius.clear();
+        cellAngle.clear();
+        slotX.clear();
+        slotY.clear();
+        swarmVx.clear();
+        swarmVy.clear();
+        rotationAngle = 0.0;
+        scrollOffset  = 0;
+        scrollTimer   = 0.0;
+
+        double cw  = ShieldCell.CELL_W;
+        double qcx = GameConstants.QUOTILE_X + GameConstants.QUOTILE_W / 2.0;
+        double qcy = GameConstants.LOGICAL_H / 2.0;
+
+        int halfSteps = (int) Math.ceil(MAX_RADIUS / cw) + 1;
+        RNG.setSeed(0xBADC0DE);
+
+        // Full circle — no dcol limit, no screen-edge clipping (cells orbit freely)
+        for (int drow = -halfSteps; drow <= halfSteps; drow++) {
+            for (int dcol = -halfSteps; dcol <= halfSteps; dcol++) {
+                double offX = dcol * cw + cw / 2.0;
+                double offY = drow * cw + cw / 2.0;
+                double dist = Math.sqrt(offX * offX + offY * offY);
+                if (dist < MIN_RADIUS || dist > MAX_RADIUS) continue;
+
+                int red = 0x60 + RNG.nextInt(0x61);
+                cells.add(new ShieldCell(dcol, drow,
+                    qcx + offX - cw / 2.0, qcy + offY - cw / 2.0, cw, cw,
+                    Color.rgb(red, 0, 0)));
+                cellRadius.add(dist);
+                cellAngle.add(Math.atan2(offY, offX));
+            }
+        }
+    }
+
+    /** Random cloud of cells spread in the annular arc zone — RANDOM_SWARM. */
+    public void rebuildSwarm(int shieldRows) {
+        rectMode = false;
+        rectCols = 0; rectRows = 0;
+        cells.clear();
+        cellRadius.clear();
+        cellAngle.clear();
+        slotX.clear();
+        slotY.clear();
+        swarmVx.clear();
+        swarmVy.clear();
+        rotationAngle = 0.0;
+        scrollOffset  = 0;
+        scrollTimer   = 0.0;
+
+        double cw    = ShieldCell.CELL_W;
+        int    count = GameConstants.SHIELD_COLS * shieldRows * 3;
+        double qcx   = GameConstants.QUOTILE_X + GameConstants.QUOTILE_W / 2.0;
+        double qcy   = GameConstants.LOGICAL_H / 2.0;
+
+        RNG.setSeed(0xDEADBEEF);
+
+        for (int i = 0; i < count; i++) {
+            // Random polar coords within the annular zone, left half only (angle 90°..270°)
+            double angle = Math.PI / 2.0 + RNG.nextDouble() * Math.PI;
+            double r     = MIN_RADIUS + RNG.nextDouble() * (MAX_RADIUS - MIN_RADIUS);
+            double offX  = Math.cos(angle) * r;
+            double offY  = Math.sin(angle) * r;
+            // Slow angular drift
+            double dAngle = (RNG.nextDouble() - 0.5) * Math.toRadians(20.0);
+            double dR     = (RNG.nextDouble() - 0.5) * 15.0;
+            int red = 0x60 + RNG.nextInt(0x61);
+            cells.add(new ShieldCell(i, 0, qcx + offX - cw / 2.0, qcy + offY - cw / 2.0, cw, cw, Color.rgb(red, 0, 0)));
+            cellAngle.add(angle);
+            cellRadius.add(r);
+            swarmVx.add(dAngle); // angular drift (rad/s)
+            swarmVy.add(dR);     // radial drift (px/s)
         }
     }
 
@@ -156,24 +246,61 @@ public class Shield {
     }
 
     /**
-     * Scrolling shield (even waves) — flat rect wall tracks Quotile Y, cells cycle
-     * through slots in reading order (left→right, top→bottom, wrapping back to top).
+     * CYCLING_FENCE: cells move along a snaking path through all slots.
+     * Row 0 (odd, 1-indexed) goes L→R, row 1 goes R→L, alternating.
+     * Each cell position advances one slot per tick, wrapping to the start
+     * of the next row when it reaches the end — creating a continuous conveyor.
      */
     public void updateScrolling(double quotileCenterY, double dt) {
         scrollTimer += dt;
         while (scrollTimer >= SCROLL_INTERVAL) {
             scrollTimer -= SCROLL_INTERVAL;
-            scrollOffset = (scrollOffset + 1) % cells.size();
+            scrollOffset++;
         }
 
-        // Shift the whole wall so its vertical centre follows the Quotile
         double yOffset = quotileCenterY - GameConstants.LOGICAL_H / 2.0;
+        int total = rectCols * rectRows;
         int n = cells.size();
+
         for (int i = 0; i < n; i++) {
-            int slot = (i + scrollOffset) % n;
             ShieldCell c = cells.get(i);
-            c.x = slotX.get(slot);
-            c.y = slotY.get(slot) + yOffset;
+            // Linear position of this cell in the snake path, advanced by scrollOffset
+            int snakePos = (i + scrollOffset) % total;
+            // Which row and column in the snake
+            int snakeRow = snakePos / rectCols;
+            int snakeCol = snakePos % rectCols;
+            // Odd rows (0-indexed even → 1-indexed odd) go L→R; even rows go R→L
+            int col = (snakeRow % 2 == 0) ? snakeCol : (rectCols - 1 - snakeCol);
+            int slotIdx = snakeRow * rectCols + col;
+            c.x = slotX.get(slotIdx);
+            c.y = slotY.get(slotIdx) + yOffset;
+        }
+    }
+
+    /** RANDOM_SWARM: cells drift in polar coords, following Quotile Y, bouncing off arc bounds. */
+    public void updateSwarm(double quotileCenterY, double dt) {
+        double qcx = GameConstants.QUOTILE_X + GameConstants.QUOTILE_W / 2.0;
+        double cw  = ShieldCell.CELL_W;
+
+        for (int i = 0; i < cells.size(); i++) {
+            ShieldCell c = cells.get(i);
+            double angle  = cellAngle.get(i)  + swarmVx.get(i) * dt;
+            double r      = cellRadius.get(i) + swarmVy.get(i) * dt;
+
+            // Keep angle in left half (90°..270°) by bouncing
+            double lo = Math.PI / 2.0, hi = 3.0 * Math.PI / 2.0;
+            if (angle < lo) { angle = lo + (lo - angle); swarmVx.set(i, -swarmVx.get(i)); }
+            if (angle > hi) { angle = hi - (angle - hi); swarmVx.set(i, -swarmVx.get(i)); }
+
+            // Bounce off MIN/MAX radius
+            if (r < MIN_RADIUS) { r = MIN_RADIUS + (MIN_RADIUS - r); swarmVy.set(i, -swarmVy.get(i)); }
+            if (r > MAX_RADIUS) { r = MAX_RADIUS - (r - MAX_RADIUS); swarmVy.set(i, -swarmVy.get(i)); }
+
+            cellAngle.set(i, angle);
+            cellRadius.set(i, r);
+
+            c.x = qcx + Math.cos(angle) * r - cw / 2.0;
+            c.y = quotileCenterY + Math.sin(angle) * r - cw / 2.0;
         }
     }
 
@@ -232,4 +359,11 @@ public class Shield {
     public List<ShieldCell> getCells() { return cells; }
     public int getCols() { return cols; }
     public int getRows() { return rows; }
+    public boolean isRectMode() { return rectMode; }
+
+    /** Half the total height of the rect wall — used to clamp Quotile Y on even waves. */
+    public double getRectHalfHeight() {
+        int rectRows = (int) Math.round(rows * 1.2);
+        return rectRows * ShieldCell.CELL_W / 2.0;
+    }
 }

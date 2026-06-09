@@ -108,7 +108,7 @@ public class HighScoreScreen implements com.yarsrevenge.screen.Screen {
 
         gc.setFont(com.yarsrevenge.renderer.GameFont.of(52));
         gc.setFill(Color.rgb(255, 220, 50));
-        gc.fillText("HIGH SCORES", 510, 130);
+        gc.fillText("HIGH EXP", 510, 130);
 
         gc.setFont(com.yarsrevenge.renderer.GameFont.of(32));
         for (int i = 0; i < scores.size(); i++) {

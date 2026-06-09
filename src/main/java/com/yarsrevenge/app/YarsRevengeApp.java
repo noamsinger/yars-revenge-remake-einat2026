@@ -1,5 +1,7 @@
 package com.yarsrevenge.app;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
 import com.yarsrevenge.audio.AudioManager;
 import com.yarsrevenge.config.GameConfig;
 import javafx.application.Application;
@@ -11,15 +13,28 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class YarsRevengeApp extends Application {
 
+    private static final Logger log = LoggerFactory.getLogger(YarsRevengeApp.class);
+
     public static void main(String[] args) {
+        // --debug: promote com.yarsrevenge logger to DEBUG before JavaFX launches
+        for (String arg : args) {
+            if ("--debug".equalsIgnoreCase(arg)) {
+                LoggerContext ctx = (LoggerContext) LoggerFactory.getILoggerFactory();
+                ctx.getLogger("com.yarsrevenge").setLevel(Level.DEBUG);
+                break;
+            }
+        }
         launch(args);
     }
 
     @Override
     public void start(Stage stage) {
+        log.info("Yar's Revenge starting up");
         // Load config first — determines resolution & audio state
         GameConfig cfg = GameConfig.getInstance();
 
@@ -51,14 +66,12 @@ public class YarsRevengeApp extends Application {
 
         SceneManager.init(stage, scene, physW, physH);
 
-        // M key: minimize mode — exit fullscreen, freeze audio, minimize
+        // M / Shift-M: minimize mode — exit fullscreen, freeze audio, minimize
         scene.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
-            if (e.getCode() == javafx.scene.input.KeyCode.M) {
+            if (e.getCode() == javafx.scene.input.KeyCode.M && e.isShiftDown()) {
                 AudioManager.getInstance().pauseAllLoops();
                 SceneManager.getInstance().pauseIfPlaying();
-                // Must exit fullscreen before iconifying on macOS
                 stage.setFullScreen(false);
-                // Defer iconify one pulse so the fullscreen exit can complete
                 javafx.application.Platform.runLater(() -> {
                     stage.setIconified(true);
                 });

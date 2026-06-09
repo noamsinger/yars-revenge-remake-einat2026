@@ -20,19 +20,21 @@ import javafx.stage.Screen;
 public class ConfigScreen implements com.yarsrevenge.screen.Screen {
 
     // Row indices
-    private static final int ROW_AUDIO = 0;
-    private static final int ROW_FPS   = 1;
-    private static final int ROW_RES   = 2;
-    private static final int ROW_BACK  = 3;
-    private static final int NUM_ROWS  = 4;
+    private static final int ROW_AUDIO    = 0;
+    private static final int ROW_FPS      = 1;
+    private static final int ROW_RES      = 2;
+    private static final int ROW_GAMEMODE = 3;
+    private static final int ROW_BACK     = 4;
+    private static final int NUM_ROWS     = 5;
 
-    private static final String[] ROW_LABELS = {"AUDIO", "FPS", "RESOLUTION", "BACK TO MENU"};
+    private static final String[] ROW_LABELS = {"AUDIO", "FPS", "RESOLUTION", "GAME MODE", "BACK TO MENU"};
 
     // Options per config row (ROW_BACK has none)
     private static final String[][] ROW_OPTIONS = {
         {"ON", "OFF"},
         {"6", "15", "30"},
         {"FIT", "1024x576", "1920x1080", "3840x2160"},
+        {"NOVICE", "NORMAL", "REBOUND", "ULTIMATE"},
     };
 
     private static final Image BG_IMAGE = new Image(
@@ -56,10 +58,11 @@ public class ConfigScreen implements com.yarsrevenge.screen.Screen {
     @Override
     public void show() {
         GameConfig cfg = GameConfig.getInstance();
-        selectedCol[ROW_AUDIO] = cfg.isAudioEnabled() ? 0 : 1;
-        selectedCol[ROW_FPS]   = indexOfFps(cfg.getFpsLimit());
-        selectedCol[ROW_RES]   = indexOfRes(cfg.getResolution());
-        selectedCol[ROW_BACK]  = 0;
+        selectedCol[ROW_AUDIO]    = cfg.isAudioEnabled() ? 0 : 1;
+        selectedCol[ROW_FPS]      = indexOfFps(cfg.getFpsLimit());
+        selectedCol[ROW_RES]      = indexOfRes(cfg.getResolution());
+        selectedCol[ROW_GAMEMODE] = indexOfGameMode(cfg.getGameMode());
+        selectedCol[ROW_BACK]     = 0;
 
         SceneManager.getInstance().getScene().setOnKeyPressed(e -> {
             KeyCode key = e.getCode();
@@ -124,6 +127,7 @@ public class ConfigScreen implements com.yarsrevenge.screen.Screen {
         cfg.setAudioEnabled(selectedCol[ROW_AUDIO] == 0);
         cfg.setFpsLimit(Integer.parseInt(ROW_OPTIONS[ROW_FPS][selectedCol[ROW_FPS]]));
         cfg.setResolution(ROW_OPTIONS[ROW_RES][selectedCol[ROW_RES]]);
+        cfg.setGameMode(GameConfig.GameMode.valueOf(ROW_OPTIONS[ROW_GAMEMODE][selectedCol[ROW_GAMEMODE]]));
         AudioManager.getInstance().setMuted(!cfg.isAudioEnabled());
         YarsRevengeApp.applyResolution(
             SceneManager.getInstance().getStage(), cfg,
@@ -144,6 +148,15 @@ public class ConfigScreen implements com.yarsrevenge.screen.Screen {
         };
     }
 
+    private static int indexOfGameMode(GameConfig.GameMode gm) {
+        return switch (gm) {
+            case NOVICE   -> 0;
+            case NORMAL   -> 1;
+            case REBOUND  -> 2;
+            case ULTIMATE -> 3;
+        };
+    }
+
     // -----------------------------------------------------------------------
     // Drawing
     // -----------------------------------------------------------------------
@@ -155,7 +168,7 @@ public class ConfigScreen implements com.yarsrevenge.screen.Screen {
     private static final double LABEL_X = 130;   // label text left
     private static final double OPT_X   = 620;   // options area left
     private static final double OPT_W   = RX - OPT_X - 50; // options area width
-    private static final double ROW_H   = 130;   // pixels per row
+    private static final double ROW_H   = 110;   // pixels per row (tightened to fit 5 rows)
     private static final double ROWS_TOP = 180;  // y of first row top
 
     private void draw(double t) {
@@ -198,24 +211,35 @@ public class ConfigScreen implements com.yarsrevenge.screen.Screen {
             // Options — evenly spread across OPT_W
             String[] opts = ROW_OPTIONS[row];
             double spacing = OPT_W / opts.length;
-            gc.setFont(GameFont.of(24));
+            gc.setFont(GameFont.of(22));
             for (int col = 0; col < opts.length; col++) {
                 boolean optSel = (selectedCol[row] == col);
                 boolean na     = isUnavailable(row, opts[col]);
                 String  label  = opts[col] + (na ? "(N/A)" : "");
 
                 Color c;
-                if (na)             c = Color.rgb(70, 70, 70);
+                if (na)                 c = Color.rgb(70, 70, 70);
                 else if (optSel && sel) c = Color.rgb((int)(255*p),(int)(255*p),50);
-                else if (optSel)    c = Color.rgb(200, 200, 80);
-                else                c = Color.rgb(120, 120, 120);
+                else if (optSel)        c = Color.rgb(200, 200, 80);
+                else                    c = Color.rgb(120, 120, 120);
 
                 gc.setFill(c);
-                // Centre each option within its slot
                 double slotCx = OPT_X + col * spacing + spacing / 2.0;
                 drawCentred(gc, label, slotCx, cy);
             }
         }
+
+        // Game mode description
+        String gmDesc = switch (selectedCol[ROW_GAMEMODE]) {
+            case 0 -> "NOVICE: Slower torpedo";
+            case 1 -> "NORMAL: Standard game";
+            case 2 -> "REBOUND: Cannon bounces back off shield";
+            case 3 -> "ULTIMATE: Collect 5 Trons, fire from left edge";
+            default -> "";
+        };
+        gc.setFont(GameFont.of(16));
+        gc.setFill(Color.rgb(100, 180, 255));
+        drawCentred(gc, gmDesc, GameConstants.LOGICAL_W / 2.0, ROWS_TOP + NUM_ROWS * ROW_H + 10);
 
         // Footer
         gc.setFont(GameFont.of(14));

@@ -13,7 +13,7 @@ public class GameState {
     /** Audio events entities can request without calling AudioManager directly. */
     public enum AudioEvent {
         STOP_ALL_LOOPS, START_ALARM, STOP_ALARM,
-        START_MISSILE_LOOP, STOP_MISSILE_LOOP, RESUME_BG_HUM,
+        START_SWIRL_LOOP, STOP_SWIRL_LOOP, RESUME_BG_HUM,
         STOP_CANNON_FLY, START_CANNON_FLY,
         PLAY_SHIELD_NIBBLE, PLAY_SHIELD_CELL_POP,
         PLAY_PLAYER_DEATH, PLAY_QUOTILE_EXPLODE,
@@ -25,7 +25,7 @@ public class GameState {
     private Torpedo torpedo;
     private Shield shield;
     private ZorlonCannon zorlonCannon;
-    private QuotileMissile quotileMissile;
+    private Swirl swirl;
     private final List<QuotileShot> activeShots    = new ArrayList<>();
     private final List<PlayerBullet> playerBullets = new ArrayList<>();
     private final List<AudioEvent> pendingAudio    = new ArrayList<>();
@@ -35,12 +35,17 @@ public class GameState {
     private int currentWave = 1;
     private boolean cannonCharged = false;
     private boolean debugMode = false;
+    private boolean autoPilot = false;
     private double explosionX = GameConstants.QUOTILE_X + GameConstants.QUOTILE_W / 2.0;
     private double explosionY = GameConstants.LOGICAL_H / 2.0;
     private WaveConfig waveConfig;
 
-    private double torpedoRespawnTimer = 0.0;
+    private double torpedoRespawnTimer = 0.0; // unused — Torpedo is indestructible
     private static final double TORPEDO_RESPAWN_DELAY = 4.0;
+
+    // Ultimate Yars mode state
+    private int tronCount = 0;
+    private static final int TRONS_REQUIRED = 5;
 
     private Phase phase = Phase.PLAYING;
     private double phaseTimer = 0.0;
@@ -58,15 +63,20 @@ public class GameState {
         waveConfig = WaveFactory.forWave(wave);
         activeShots.clear();
         playerBullets.clear();
+        // Stop any in-flight audio loops before nulling entities
+        if (swirl != null)        queueAudio(AudioEvent.STOP_SWIRL_LOOP);
+        if (zorlonCannon != null) queueAudio(AudioEvent.STOP_CANNON_FLY);
         zorlonCannon = null;
-        quotileMissile = null;
+        swirl = null;
         cannonCharged = false;
+        tronCount = 0;
 
         shield = new Shield(GameConstants.SHIELD_COLS, waveConfig.shieldRows());
-        if (waveConfig.scrollingShield()) {
-            shield.rebuildRect(waveConfig.shieldRows());
-        } else {
-            shield.rebuild(waveConfig.shieldRows());
+        switch (waveConfig.shieldMode()) {
+            case CYCLING_FENCE  -> shield.rebuildRect(waveConfig.shieldRows());
+            case ROTATING_CIRCLE -> shield.rebuildRotating(waveConfig.shieldRows());
+            case RANDOM_SWARM    -> shield.rebuildSwarm(waveConfig.shieldRows());
+            default              -> shield.rebuild(waveConfig.shieldRows()); // ARCH_BARRICADE
         }
 
         if (quotile == null) {
@@ -95,15 +105,22 @@ public class GameState {
         player.reset(200, GameConstants.LOGICAL_H / 2.0 - GameConstants.PLAYER_H / 2.0);
         activeShots.clear();
         playerBullets.clear();
-        torpedo.respawn();
+        tronCount = 0;
+        cannonCharged = false;
     }
 
     public void addShot(QuotileShot s)           { activeShots.add(s); }
     public void addPlayerBullet(PlayerBullet b)  { playerBullets.add(b); }
     public void addScore(int pts)                { score += pts; }
     public void loseLife()          { lives = Math.max(0, lives - 1); }
+    public void addLife()           { lives = Math.min(4, lives + 1); }
     public void chargeCanon()       { cannonCharged = true; }
     public void dischargeCanon()    { cannonCharged = false; }
+
+    public int  getTronCount()           { return tronCount; }
+    public void addTron()                { tronCount = Math.min(tronCount + 1, TRONS_REQUIRED); }
+    public void resetTrons()             { tronCount = 0; }
+    public boolean hasTronsForCannon()   { return tronCount >= TRONS_REQUIRED; }
 
     public void setPhase(Phase p) {
         phase = p;
@@ -125,7 +142,7 @@ public class GameState {
     public Torpedo getTorpedo()                  { return torpedo; }
     public Shield getShield()                    { return shield; }
     public ZorlonCannon getZorlonCannon()        { return zorlonCannon; }
-    public QuotileMissile getQuotileMissile()    { return quotileMissile; }
+    public Swirl getSwirl()                      { return swirl; }
     public List<QuotileShot> getActiveShots()    { return activeShots; }
     public List<PlayerBullet> getPlayerBullets() { return playerBullets; }
     public int getLives()                        { return lives; }
@@ -137,12 +154,14 @@ public class GameState {
     public boolean isCannonCharged()             { return cannonCharged; }
     public boolean isDebugMode()                 { return debugMode; }
     public void toggleDebugMode()                { debugMode = !debugMode; }
+    public boolean isAutoPilot()                 { return autoPilot; }
+    public void toggleAutoPilot()                { autoPilot = !autoPilot; }
     public double getExplosionX()                { return explosionX; }
     public double getExplosionY()                { return explosionY; }
     public void setExplosionPoint(double x, double y) { explosionX = x; explosionY = y; }
 
-    public void setZorlonCannon(ZorlonCannon c)     { zorlonCannon = c; }
-    public void setQuotileMissile(QuotileMissile m) { quotileMissile = m; }
+    public void setZorlonCannon(ZorlonCannon c)  { zorlonCannon = c; }
+    public void setSwirl(Swirl s)                { swirl = s; }
 
     public void queueAudio(AudioEvent e) { pendingAudio.add(e); }
     public List<AudioEvent> drainAudioEvents() {

@@ -31,4 +31,7 @@ public final class GameConstants {
 
     public static final double WAVE_TRANSITION_SECS = 5.0;
     public static final double PLAYER_DYING_SECS    = 1.5;
+
+    // Ultimate Yars: player must be at the left edge to fire the cannon
+    public static final double ULTIMATE_FIRE_X = 80.0;
 }
